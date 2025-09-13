@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import "./Home.css"; // ya apna auth css import kar
+import { useNavigate } from "react-router-dom"; // <- import
+import "./Home.css";
 
 const Login = ({ goBack }) => {
   const [form, setForm] = useState({ email: "", password: "" });
+  const navigate = useNavigate(); // <- hook
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -11,6 +13,9 @@ const Login = ({ goBack }) => {
     e.preventDefault();
     console.log("Login data:", form);
     alert("Login submitted! Check console.");
+
+    // Navigate programmatically
+    navigate("/landingpage");
   };
 
   return (
@@ -37,7 +42,6 @@ const Login = ({ goBack }) => {
             onChange={handleChange}
             required
           />
-
           <button type="submit" className="btn-primary">Login</button>
 
           {/* 🔙 Back to Home at bottom */}

@@ -1,9 +1,25 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Auth.css";
 
 function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState("user");
+  const navigate = useNavigate();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (isLogin) {
+      console.log("Logging in as:", role);
+      alert("Login successful!");
+      navigate("/landingpage"); // Navigate to LandingPage
+    } else {
+      console.log("Signing up as:", role);
+      alert("Signup successful!");
+      setIsLogin(true); // Switch to login after signup
+    }
+  };
 
   return (
     <div className="auth-wrapper">
@@ -25,31 +41,24 @@ function Auth() {
       </div>
 
       <div className="auth-box">
-        <form className="auth-form">
+        <form className="auth-form" onSubmit={handleSubmit}>
           {!isLogin && <input type="text" placeholder="Full Name" required />}
           <input type="email" placeholder="Email" required />
           <input type="password" placeholder="Password" required />
 
           {!isLogin && (
             <div className="role-options">
-              <div
-                className={`role-card ${role === "researcher" ? "active" : ""}`}
-                onClick={() => setRole("researcher")}
-              >
-                👨‍🔬 Researcher
-              </div>
-              <div
-                className={`role-card ${role === "admin" ? "active" : ""}`}
-                onClick={() => setRole("admin")}
-              >
-                👑 Admin
-              </div>
-              <div
-                className={`role-card ${role === "user" ? "active" : ""}`}
-                onClick={() => setRole("user")}
-              >
-                👤 User
-              </div>
+              {["researcher", "admin", "user"].map((r) => (
+                <div
+                  key={r}
+                  className={`role-card ${role === r ? "active" : ""}`}
+                  onClick={() => setRole(r)}
+                >
+                  {r === "researcher" && "👨‍🔬 Researcher"}
+                  {r === "admin" && "👑 Admin"}
+                  {r === "user" && "👤 User"}
+                </div>
+              ))}
             </div>
           )}
 
