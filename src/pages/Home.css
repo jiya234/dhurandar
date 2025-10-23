@@ -234,8 +234,7 @@
 }
 /* ABOUT US SECTION */
 .about {
-  background: url("C:\Users\Rakesh\Desktop\agrismart\src\pages\images\agri.png") ; /* 👈 apna background image yahan daalo */
-  background-size: cover;
+background: url('./images/agri.png');  background-size: cover;
   padding: 170px 20px;
   position: relative;
   text-align: center;

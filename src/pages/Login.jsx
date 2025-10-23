@@ -1,6 +1,8 @@
+// Login.jsx (Updated)
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Home.css";
+import "./Home.css"; // Ye aapne provide kiya tha, agar "Login.css" hai toh change kar lein
 
 const Login = ({ goBack }) => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -9,16 +11,28 @@ const Login = ({ goBack }) => {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  // --- YAHAN UPDATE KIYA GAYA HAI ---
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Login data:", form);
 
-    // Read role stored during signup
+    // Aapke signup logic ke hisab se role 'localStorage' se padh rahe hain
+    // Real app mein, ye login API response se aana chahiye
     const role = localStorage.getItem("role") || "User";
 
-    if (role === "Admin") navigate("/admin/dashboard");
-    else navigate("/user/dashboard"); // User goes to LandingPage
+    // Role ke hisab se sahi dashboard par redirect karein
+    if (role === "Admin") {
+      navigate("/admin/dashboard");
+    } else if (role === "Researcher") {
+      navigate("/researcher/dashboard"); // <-- Researcher ke lie add kiya
+    } else if (role === "Guest") {
+      navigate("/guest/dashboard"); // <-- Guest ke lie add kiya
+    } else {
+      // "User" ya koi aur default role
+      navigate("/user/dashboard");
+    }
   };
+  // --- UPDATE ENDS HERE ---
 
   return (
     <div className="auth-wrapper">
@@ -47,9 +61,13 @@ const Login = ({ goBack }) => {
           <button type="submit" className="btn-primary">Login</button>
         </form>
 
-        <button type="button" onClick={goBack} className="btn-secondary">
-          ← Back to Home
-        </button>
+        {/* goBack prop
+         agar Home.jsx se aa raha hai tabhi dikhega */}
+        {goBack && (
+          <button type="button" onClick={goBack} className="btn-secondary">
+            ← Back to Home
+          </button>
+        )}
       </div>
     </div>
   );
