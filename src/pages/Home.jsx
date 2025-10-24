@@ -18,14 +18,17 @@ const Home = () => {
           </p>
 
           <div className="hero-buttons">
-            <Link to="/get-started">
+            {/* Go to Signup */}
+            <Link to="/signup">
               <button className="primary">Get Started</button>
             </Link>
-            <button className="secondary">Use as Guest</button>
+
+            {/* Guest access */}
+            <Link to="/user/dashboard">
+              <button className="secondary">Use as Guest</button>
+            </Link>
           </div>
         </div>
-        {/* you can add hero image below */}
-        {/* <img src="/hero.jpg" alt="drones" className="hero-image" /> */}
       </section>
 
       {/* ====== INSIGHTS SECTION ====== */}
@@ -73,14 +76,13 @@ const Home = () => {
       {/* ====== ABOUT US SECTION ====== */}
       <section className="about">
         <div className="container">
-          
           <p className="about-text">
             <b>“Grow the right crop, at the right place, at the right time.”</b>
             <br /><br />
             AgriSmart is an AI-powered crop recommendation system designed to make farming smarter and easier. 
-            By simply clicking on a map, farmers can instantly get the best crop suggestions and soil nutrient insights 
+            By simply clicking on a map, users can instantly get the best crop suggestions and soil nutrient insights 
             for their specific location. The platform also provides recommendations on how to balance soil nutrients 
-            for better fertility and yield. With role-based access for guests, farmers, researchers, and admins, 
+            for better fertility and yield. With role-based access for guests, users, researchers, and admins, 
             AgriSmart ensures reliable data, secure usage, and sustainable agricultural practices.
           </p>
         </div>

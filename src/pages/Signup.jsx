@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Signup.css";
 
 const Signup = ({ goBack }) => {
@@ -6,8 +7,10 @@ const Signup = ({ goBack }) => {
     fullName: "",
     email: "",
     password: "",
-    role: "User",
+    role: "User", // default role
   });
+
+  const navigate = useNavigate();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -15,18 +18,30 @@ const Signup = ({ goBack }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Signup data:", form);
-    alert("Signup submitted! Check console.");
+
+    // Store role locally
+    localStorage.setItem("role", form.role);
+
+    // Role-based redirect
+    if (form.role === "Admin") navigate("/admin/dashboard");
+    else if (form.role === "User") navigate("/user/dashboard");
+    else if (form.role === "Researcher") navigate("/researcher/dashboard");
+    else if (form.role === "Guest") navigate("/guest/dashboard");
   };
+
+  const roleOptions = [
+    { role: "Admin", icon: "⚙️" },
+    { role: "User", icon: "👤" },
+    { role: "Researcher", icon: "🔬" },
+    { role: "Guest", icon: "🌍" },
+  ];
 
   return (
     <div className="auth-wrapper">
       <div className="auth-box">
         <h1 className="brand">🌱 AgriSmart</h1>
-        <p className="subtitle">
-          Create your account to access the agricultural dashboard
-        </p>
+        <p className="subtitle">Create your account</p>
 
-        <h2 className="form-title">Access Platform</h2>
         <form onSubmit={handleSubmit} className="auth-form">
           <input
             type="text"
@@ -55,14 +70,12 @@ const Signup = ({ goBack }) => {
 
           <label className="role-label">Choose Role</label>
           <div className="role-options">
-            {[
-              { role: "Researcher", icon: "🔬" },
-              { role: "Admin", icon: "⚙️" },
-              { role: "User", icon: "👤" },
-            ].map((item) => (
+            {roleOptions.map((item) => (
               <label
                 key={item.role}
-                className={`role-card ${form.role === item.role ? "active" : ""}`}
+                className={`role-card ${
+                  form.role === item.role ? "active" : ""
+                }`}
               >
                 <input
                   type="radio"
@@ -77,12 +90,9 @@ const Signup = ({ goBack }) => {
             ))}
           </div>
 
-          <button type="submit" className="btn-primary">
-            Sign Up
-          </button>
+          <button type="submit" className="btn-primary">Sign Up</button>
         </form>
 
-        {/* 🔙 Back button placed outside form */}
         <button type="button" onClick={goBack} className="btn-secondary">
           ← Back to Home
         </button>
