@@ -1,35 +1,81 @@
 .users-page {
-  padding: 20px;
+  padding: 32px;
+  background: #f7f8fa;
+  min-height: 100vh;
+  font-family: Inter, system-ui, sans-serif;
 }
 
-.page-title {
-  font-size: 26px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #064929;
+.users-page h1 {
+  margin-bottom: 24px;
 }
 
-.users-table {
+.section {
+  background: white;
+  padding: 24px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 32px;
+}
+
+.section h2 {
+  margin-bottom: 16px;
+}
+
+.table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
 }
 
-.users-table th {
-  background: #064929;
-  color: white;
+.table th,
+.table td {
   padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
   text-align: left;
+  font-size: 14px;
 }
 
-.users-table td {
-  padding: 12px;
-  border-bottom: 1px solid #ddd;
+.role {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.users-table tr:hover {
-  background-color: #f4f6f8;
+.role.farmer {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.role.researcher {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.role.admin {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.approve {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.decline {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.empty {
+  color: #6b7280;
+  font-size: 14px;
 }

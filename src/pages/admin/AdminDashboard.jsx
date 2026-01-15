@@ -1,31 +1,26 @@
 import React from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <h2>AgriSmart Admin</h2>
-        <NavLink to="/admin/dashboard" end className={({ isActive }) => (isActive ? "active-link" : "")}>
-          Dashboard
-        </NavLink>
-        <NavLink to="/admin/dashboard/users" className={({ isActive }) => (isActive ? "active-link" : "")}>
-          Users
-        </NavLink>
-        <NavLink to="/admin/dashboard/requests" className={({ isActive }) => (isActive ? "active-link" : "")}>
-          Research Requests
-        </NavLink>
-        <NavLink to="/admin/dashboard/settings" className={({ isActive }) => (isActive ? "active-link" : "")}>
-          Settings
-        </NavLink>
-      </aside>
+    <div className="layout">
 
-      {/* Main Content */}
-      <main className="main">
-        <Outlet /> {/* yahan nested routes ka content render hoga */}
-      </main>
+      {/* MAIN */}
+      <div className="content">
+        <header className="topbar">
+          <div>
+            <h2>Admin Dashboard</h2>
+            <p>System overview & controls</p>
+          </div>
+
+          <div className="avatar">
+            <img src="https://i.pravatar.cc/40" alt="admin" />
+          </div>
+        </header>
+
+        <Outlet />
+      </div>
     </div>
   );
 };

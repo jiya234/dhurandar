@@ -2,65 +2,65 @@ import React, { useState } from "react";
 import "./Settings.css";
 
 const Settings = () => {
-  const [email, setEmail] = useState("admin@agrismart.com");
+  const [systemMode, setSystemMode] = useState("Production");
+  const [approvalRequired, setApprovalRequired] = useState(true);
+  const [notifications, setNotifications] = useState(true);
 
   const handleSave = () => {
-    alert("Settings saved!");
+    alert("Settings saved successfully ✅");
   };
-
-  const admins = [
-    {
-      id: 1,
-      name: "Admin User",
-      email: "admin@agrismart.com",
-      role: "Super Admin",
-      added: "2024-01-01",
-    },
-    {
-      id: 2,
-      name: "John Manager",
-      email: "john.manager@agrismart.com",
-      role: "Admin",
-      added: "2024-05-12",
-    },
-  ];
 
   return (
     <div className="settings-page">
-      <h1 className="page-title">Admin Settings</h1>
+      <h1>Admin Settings</h1>
+      <p className="subtitle">Configure system level preferences</p>
 
-      {/* General Settings */}
-      <div className="settings-card">
-        <label>
-          <span>Admin Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-        <button onClick={handleSave}>Save</button>
-      </div>
+      {/* SYSTEM SETTINGS */}
+      <div className="settings-section">
+        <h3>System Configuration</h3>
 
-      {/* Admin Management Section */}
-      <div className="admin-management">
-        <h2>👤 Admin Management</h2>
-        <p className="subtitle">Add or remove system administrators</p>
-        <button className="add-btn">+ Add Admin</button>
+        <div className="setting-item">
+          <label>System Mode</label>
+          <select
+            value={systemMode}
+            onChange={(e) => setSystemMode(e.target.value)}
+          >
+            <option>Production</option>
+            <option>Maintenance</option>
+            <option>Testing</option>
+          </select>
+        </div>
 
-        <div className="admin-list">
-          {admins.map((a) => (
-            <div key={a.id} className="admin-card">
-              <div className="admin-info">
-                <h3>{a.name}</h3>
-                <p>{a.email}</p>
-                <span className="role">{a.role}</span>
-              </div>
-              <div className="admin-meta">Added: {a.added}</div>
-            </div>
-          ))}
+        <div className="setting-item">
+          <label>Dataset Approval Required</label>
+          <select
+            value={approvalRequired ? "Yes" : "No"}
+            onChange={(e) => setApprovalRequired(e.target.value === "Yes")}
+          >
+            <option>Yes</option>
+            <option>No</option>
+          </select>
         </div>
       </div>
+
+      {/* NOTIFICATIONS */}
+      <div className="settings-section">
+        <h3>Notifications</h3>
+
+        <div className="setting-toggle">
+          <span>Email Notifications</span>
+          <input
+            type="checkbox"
+            checked={notifications}
+            onChange={() => setNotifications(!notifications)}
+          />
+        </div>
+      </div>
+
+      {/* SAVE */}
+      <button className="save-btn" onClick={handleSave}>
+        Save Changes
+      </button>
     </div>
   );
 };

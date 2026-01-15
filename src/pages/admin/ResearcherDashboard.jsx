@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ResearcherDashboard.css";
 
-// Map ke imports
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -12,7 +11,6 @@ import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-// Icons ke imports
 import {
   Bell,
   LogOut,
@@ -27,7 +25,6 @@ import {
   XCircle,
 } from "lucide-react";
 
-// --- Leaflet icon fix (File ke top par) ---
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -43,7 +40,7 @@ const initialDatasets = [
   { name: "Cotton Water Usage", region: "Gujarat, India", date: "Jan 20, 2025", status: "Approved" },
 ];
 
-// Status Badge component (isi file mein)
+
 const StatusBadge = ({ status }) => {
   const statusConfig = {
     Approved: { icon: <CheckCircle size={16} />, className: "status-approved" },
@@ -105,7 +102,7 @@ const ResearcherDashboard = () => {
 
   // --- Render Functions ---
 
-  // 1. Dashboard Home Content
+
   const renderHomeView = () => (
     <>
       <div className="welcome-header">
@@ -203,7 +200,6 @@ const ResearcherDashboard = () => {
         <div className="header-left">
           <h1 className="brand-logo">🌱 AgriSmart</h1>
           <nav className="header-nav">
-            {/* ----- YAHAN DEKHEIN: NavLink ko <a> tag se badal diya ----- */}
             <a
               href="#home"
               className={currentView === "home" ? "nav-link active" : "nav-link"}
@@ -255,7 +251,7 @@ const ResearcherDashboard = () => {
 
       {/* ----- Main Content (Conditional Rendering) ----- */}
       <main className="dashboard-content">
-        {/* ----- YAHAN DEKHEIN: View ke hisab se content render hoga ----- */}
+  
         {currentView === "home" ? renderHomeView() : renderMapView()}
       </main>
     </div>

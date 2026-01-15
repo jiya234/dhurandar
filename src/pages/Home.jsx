@@ -19,7 +19,8 @@ const Home = () => {
 
           <div className="hero-buttons">
             {/* Go to Signup */}
-            <Link to="/signup">
+            <Link to="/get-started">
+
               <button className="primary">Get Started</button>
             </Link>
 

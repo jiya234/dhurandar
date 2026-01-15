@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home.jsx";
 import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
+import GetStarted from "./pages/GetStarted.jsx";
+
 
 // Dashboards
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
@@ -10,7 +12,6 @@ import UserDashboard from "./pages/admin/UserDashboard.jsx";
 import ResearcherDashboard from "./pages/admin/ResearcherDashboard.jsx";
 import GuestDashboard from "./pages/admin/GuestDashboard.jsx";
 
-// Admin nested pages
 import Dashboard from "./pages/admin/Dashboard.jsx";
 import Users from "./pages/admin/Users.jsx";
 import ResearchRequests from "./pages/admin/ResearchRequests.jsx";
@@ -22,6 +23,7 @@ function App() {
       <Routes>
         {/* Homepage */}
         <Route path="/" element={<Home />} />
+        <Route path="/get-started" element={<GetStarted />} />
 
         {/* Signup / Login */}
         <Route path="/signup" element={<Signup />} />

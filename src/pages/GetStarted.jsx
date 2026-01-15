@@ -9,6 +9,7 @@ const GetStarted = () => {
   const navigate = useNavigate();
 
   return (
+    <div className="getstarted-wrapper">
     <div className="getstarted-container">
       {!show && (
         <>
@@ -17,35 +18,30 @@ const GetStarted = () => {
 
           {/* Signup & Login buttons */}
           <div className="choice-buttons">
-            <button
-              onClick={() => setShow("signup")}
-              className="signup-btn"
-            >
+            <button onClick={() => setShow("signup")} className="signup-btn">
               Signup
             </button>
-            <button
-              onClick={() => setShow("login")}
-              className="login-btn"
-            >
+            <button onClick={() => setShow("login")} className="login-btn">
               Login
             </button>
           </div>
 
-          {/* Back to Home button */}
-          <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
-            <button
-              className="back-btn"
-              onClick={() => navigate("/")}
-              style={{ width: "100%" }}
-            >
-              ← Back to Home
-            </button>
+          {/* Already have account */}
+          <div className="already-text">
+            Already have an account?{" "}
+            <span onClick={() => setShow("login")}>Login</span>
           </div>
+
+          {/* Back to Home */}
+          <button className="back-btn" onClick={() => navigate("/")}>
+            ← Back to Home
+          </button>
         </>
       )}
 
       {show === "signup" && <Signup goBack={() => setShow("")} />}
       {show === "login" && <Login goBack={() => setShow("")} />}
+    </div>
     </div>
   );
 };

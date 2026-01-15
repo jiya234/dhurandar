@@ -1,38 +1,48 @@
-// Login.jsx (Updated)
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Home.css"; // Ye aapne provide kiya tha, agar "Login.css" hai toh change kar lein
+import "./Home.css"; 
 
 const Login = ({ goBack }) => {
   const [form, setForm] = useState({ email: "", password: "" });
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-  const handleChange = (e) =>
+  const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: "" });
+  };
 
-  // --- YAHAN UPDATE KIYA GAYA HAI ---
+  const validate = () => {
+    let newErrors = {};
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      newErrors.email = "Enter a valid email address";
+    }
+
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    if (!passwordRegex.test(form.password)) {
+      newErrors.password =
+        "Password must be at least 8 characters and include letters & numbers";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validate()) return;
+
     console.log("Login data:", form);
 
-    // Aapke signup logic ke hisab se role 'localStorage' se padh rahe hain
-    // Real app mein, ye login API response se aana chahiye
     const role = localStorage.getItem("role") || "User";
 
-    // Role ke hisab se sahi dashboard par redirect karein
-    if (role === "Admin") {
-      navigate("/admin/dashboard");
-    } else if (role === "Researcher") {
-      navigate("/researcher/dashboard"); // <-- Researcher ke lie add kiya
-    } else if (role === "Guest") {
-      navigate("/guest/dashboard"); // <-- Guest ke lie add kiya
-    } else {
-      // "User" ya koi aur default role
-      navigate("/user/dashboard");
-    }
+    if (role === "Admin") navigate("/admin/dashboard");
+    else if (role === "Researcher") navigate("/researcher/dashboard");
+    else navigate("/user/dashboard");
   };
-  // --- UPDATE ENDS HERE ---
 
   return (
     <div className="auth-wrapper">
@@ -49,6 +59,8 @@ const Login = ({ goBack }) => {
             onChange={handleChange}
             required
           />
+          {errors.email && <p className="error">{errors.email}</p>}
+
           <input
             type="password"
             name="password"
@@ -57,12 +69,11 @@ const Login = ({ goBack }) => {
             onChange={handleChange}
             required
           />
+          {errors.password && <p className="error">{errors.password}</p>}
 
           <button type="submit" className="btn-primary">Login</button>
         </form>
 
-        {/* goBack prop
-         agar Home.jsx se aa raha hai tabhi dikhega */}
         {goBack && (
           <button type="button" onClick={goBack} className="btn-secondary">
             ← Back to Home

@@ -1,37 +1,63 @@
-import React from "react";
+import { useState } from "react";
 import "./Users.css";
 
 const Users = () => {
-  const users = [
-    { id: 1, name: "John Doe", role: "User", email: "john@example.com" },
-    { id: 2, name: "Alice Smith", role: "Researcher", email: "alice@example.com" },
-    { id: 3, name: "Bob Admin", role: "Admin", email: "bob@example.com" },
-  ];
+  const [users] = useState([
+    {
+      id: 1,
+      name: "Ravi Kumar",
+      role: "Farmer",
+      email: "ravi@gmail.com"
+    },
+    {
+      id: 2,
+      name: "Anjali Sharma",
+      role: "Researcher",
+      email: "anjali@nit.edu"
+    },
+    {
+      id: 3,
+      name: "Admin",
+      role: "Admin",
+      email: "admin@agrismart.ai"
+    }
+  ]);
+
 
   return (
     <div className="users-page">
-      <h1 className="page-title">Manage Users</h1>
-      <table className="users-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id}>
-              <td>{u.id}</td>
-              <td>{u.name}</td>
-              <td>{u.email}</td>
-              <td>{u.role}</td>
+
+      <h1>Manage Users</h1>
+
+      {/* 🟢 REGISTERED USERS */}
+      <div className="section">
+        <h2>Registered Users</h2>
+
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Email</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+
+          <tbody>
+            {users.map(user => (
+              <tr key={user.id}>
+                <td>{user.name}</td>
+                <td>
+                  <span className={`role ${user.role.toLowerCase()}`}>
+                    {user.role}
+                  </span>
+                </td>
+                <td>{user.email}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+</div>
   );
 };
 
