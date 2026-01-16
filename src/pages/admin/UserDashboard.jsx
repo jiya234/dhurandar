@@ -1,525 +1,313 @@
 import React, { useState } from "react";
-import { Rectangle } from "react-leaflet";
-import { useEffect } from "react";
+import { 
+  Cloud, Sun, Wind, Eye, Gauge, Map, Settings, 
+  LayoutDashboard, CloudRain, Wheat, Navigation 
+} from "lucide-react";
+import "./Users.css";
 
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMapEvents,
-} from "react-leaflet";
-import { useNavigate } from "react-router-dom";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-
-/* 🔧 Leaflet marker fix */
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
-
-/* 📍 Map click handler */
-const LocationPicker = ({ onSelect }) => {
-  useMapEvents({
-    click(e) {
-      onSelect(e.latlng);
-    },
-  });
-  return null;
-};
-const Legend = ({ color, text }) => (
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      marginBottom: "6px",
-      fontSize: "13px",
-      color: "#374151",
-    }}
-  >
-    <div
-      style={{
-        width: "14px",
-        height: "14px",
-        borderRadius: "4px",
-        background: color,
-      }}
-    />
-    {text}
-  </div>
-);
-const Info = ({ label, value }) => (
-  <div>
-    <p
-      style={{
-        fontSize: "13px",
-        color: "#6B7280",
-        marginBottom: "2px",
-      }}
-    >
-      {label}
-    </p>
-    <p
-      style={{
-        fontSize: "14px",
-        color: "#111827",
-        fontWeight: "500",
-      }}
-    >
-      {value}
-    </p>
-  </div>
-);
-const SettingRow = ({ label, value }) => (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      padding: "14px 0",
-      borderBottom: "1px solid #F1F5F9",
-      fontSize: "14px",
-    }}
-  >
-    <span style={{ color: "#374151" }}>{label}</span>
-    <span style={{ color: "#111827", fontWeight: "500" }}>{value}</span>
-  </div>
-);
-
-
-
-const AgriSmartDashboard = () => {
-  const navigate = useNavigate();
-
-  const [location, setLocation] = useState(null);
-  const [soilData, setSoilData] = useState([]);
-  const [nutrient, setNutrient] = useState("N");
- useEffect(() => {
-  fetch("/soil_data.json")
-    .then(res => res.json())
-    .then(data => setSoilData(data.Sheet1));
-}, []);
-
-  const [activeTab, setActiveTab] = useState("dashboard"); // dashboard | profile | settings
-   // ✅ Small reusable info box (MUST be above export default)
-
-  /* 🔮 Temporary ML output */
-  const recommendation = location
-    ? {
-        crops: "Wheat, Mustard, Chickpea",
-        confidence: "High",
-        reason:
-          "Soil NPK + pH + Kasganj rainfall + Admin approved research data",
-      }
-    : null;
-      const getColor = (value, nutrient) => {
-  if (nutrient === "N") {
-    if (value < 150) return "#ef4444";   // red
-    if (value < 250) return "#facc15";   // yellow
-    return "#22c55e";                    // green
-  }
-
-  if (nutrient === "P") {
-    if (value < 10) return "#ef4444";
-    if (value < 25) return "#facc15";
-    return "#22c55e";
-  }
-
-  if (nutrient === "K") {
-    if (value < 100) return "#ef4444";
-    if (value < 200) return "#facc15";
-    return "#22c55e";
-  }
-
-  if (nutrient === "pH") {
-    if (value < 6) return "#60a5fa";    // acidic
-    if (value < 7.5) return "#22c55e";  // neutral
-    return "#f97316";                  // alkaline
-  }
-};
+export default function UserDashboard() {
+  const [activePage, setActivePage] = useState("dashboard");
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F4F7F6" }}>
-      {/* 🔝 NAVBAR */}
-      <nav
-        style={{
-          height: "64px",
-          background: "#1F4037",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 32px",
-        }}
-      >
-        <h2 style={{ margin: 0 }}>AgriSmart</h2>
-
-        <div style={{ display: "flex", gap: "28px" }}>
-          <span
-            style={navItem(activeTab === "dashboard")}
-            onClick={() => setActiveTab("dashboard")}
-          >
-            Dashboard
-          </span>
-          <span
-            style={navItem(activeTab === "profile")}
-            onClick={() => setActiveTab("profile")}
-          >
-            Profile
-          </span>
-          <span
-            style={navItem(activeTab === "settings")}
-            onClick={() => setActiveTab("settings")}
-          >
-            Settings
-          </span>
-          <span
-            style={{ cursor: "pointer", color: "#FCA5A5" }}
-            onClick={() => navigate("/login")}
-          >
-            Logout
-          </span>
+    <div className="app-container">
+      {/* SIDEBAR */}
+      <aside className="sidebar">
+        <div className="logo-section">
+          <div className="logo-box">
+            <CloudRain size={20} color="white" />
+          </div>
+          <span className="logo-text">AgriSense</span>
         </div>
-      </nav>
 
-      {/* ================= DASHBOARD ================= */}
-     {activeTab === "dashboard" && (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "2.2fr 1fr",
-      gap: "24px",
-      padding: "24px 32px",
-    }}
-  >
-    {/* LEFT – MAP */}
-    <div>
-    
+        <div className="profile-section">
+          <div className="profile-avatar">RS</div>
+          <div className="profile-details">
+            <h4>Ramesh Singh</h4>
+            <p>Kasganj, UP</p>
+          </div>
+          <div className="status-badge">● Active field</div>
+        </div>
 
-      <MapContainer
-        center={[27.8083, 78.6458]}
-        zoom={11}
-        style={{
-          height: "520px",
-          borderRadius: "12px",
-          border: "1px solid #D1D5DB",
-        }}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <nav className="nav-menu">
+          <div className={`nav-item ${activePage === "dashboard" ? "active" : ""}`} onClick={() => setActivePage("dashboard")}>
+            <LayoutDashboard size={18} /> <span>Dashboard</span>
+          </div>
+          <div className={`nav-item ${activePage === "weather" ? "active" : ""}`} onClick={() => setActivePage("weather")}>
+            <Cloud size={18} /> <span>Weather</span>
+          </div>
+          {/* Field Map Link (FIXED: Added onClick here) */}
+          <div 
+            className={`nav-item ${activePage === "fieldMap" ? "active" : ""}`} 
+            onClick={() => setActivePage("fieldMap")}
+          >
+            <Map size={18} /> <span>Field Map</span>
+          </div>
+         <div className={`nav-item ${activePage === "cropSuggestions" ? "active" : ""}`} onClick={() => setActivePage("cropSuggestions")}>
+            <Wheat size={18} /> <span>Crop Suggestions</span>
+          </div>
+          <div className="nav-item"><Settings size={18} /> <span>Settings</span></div>
+        </nav>
 
-        {Array.isArray(soilData) &&
-          soilData.map((cell, idx) => {
-            const size = 0.001;
+        <div className="news-section">
+          <h5>AGRI NEWS</h5>
+          <div className="news-item">IMD predicts normal monsoon this season</div>
+          <div className="news-item">Govt revises MSP for wheat by 7%</div>
+        </div>
+      </aside>
 
-            const key =
-              nutrient === "N"
-                ? "n"
-                : nutrient === "P"
-                ? "p"
-                : nutrient === "K"
-                ? "k"
-                : "pH";
+      {/* MAIN CONTENT */}
+      <main className="main-content">
+        {activePage === "dashboard" && (
+          <div className="content-fade-in">
+            <header className="page-header">
+              <h1>Good Morning, Ramesh 👋</h1>
+              <p>Here's what's happening with your fields today</p>
+            </header>
 
-            const value = cell[key];
-            const color = getColor(value, nutrient);
+            <div className="dashboard-grid">
+              <div className="stat-card">
+                <div className="stat-icon sun">☀️</div>
+                <h2>28°C</h2>
+                <p>Partly Cloudy</p>
+                <span className="small-alert">Rain expected Wed-Thu</span>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon leaf">🌱</div>
+                <h2>3 Fields</h2>
+                <p>Active this season</p>
+                <span className="small-alert">All fields healthy</span>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon trend">📈</div>
+                <h2>Good</h2>
+                <p>Soil health status</p>
+                <span className="small-alert">Consider adding phosphorus</span>
+              </div>
+            </div>
 
-            return (
-              <Rectangle
-                key={idx}
-                bounds={[
-                  [cell.Latitude - size, cell.Longitude - size],
-                  [cell.Latitude + size, cell.Longitude + size],
-                ]}
-                pathOptions={{
-                  color,
-                  fillColor: color,
-                  fillOpacity: 0.45,
-                  weight: 1,
-                }}
-              />
-            );
-          })}
+            <div className="lower-grid">
+              <div className="map-panel">
+                <div className="panel-header">
+                  <h3>📍 Field Location</h3>
+                  <Navigation size={16} />
+                </div>
+                <div className="coord-inputs">
+                  <div className="input-group"><label>LATITUDE</label><input value="27.8" readOnly /></div>
+                  <div className="input-group"><label>LONGITUDE</label><input value="78.65" readOnly /></div>
+                  <button className="apply-btn">Apply</button>
+                </div>
+                <div className="map-view">
+                   {/* Map image or component here */}
+                   <img src="https://via.placeholder.com/600x300/e0e0e0/808080?text=Map+Preview" alt="Map" />
+                </div>
+              </div>
 
-        <LocationPicker onSelect={(latlng) => setLocation(latlng)} />
-
-        {location && (
-          <Marker position={location}>
-            <Popup>
-              <strong>Selected Location</strong>
-              <br />
-              {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
-            </Popup>
-          </Marker>
+              <div className="recommendation-panel">
+                <div className="panel-header">
+                   <h3>🌾 Crop Recommendation</h3>
+                   <span className="badge">High Confidence</span>
+                </div>
+                <div className="crop-list">
+                  <div className="crop-card">
+                    <span className="crop-emoji">🌾</span>
+                    <strong>Wheat</strong>
+                    <p>92% match</p>
+                  </div>
+                  <div className="crop-card">
+                    <span className="crop-emoji">🌻</span>
+                    <strong>Mustard</strong>
+                    <p>87% match</p>
+                  </div>
+                  <div className="crop-card">
+                    <span className="crop-emoji">🫘</span>
+                    <strong>Chickpea</strong>
+                    <p>84% match</p>
+                  </div>
+                </div>
+                <div className="why-crops">
+                  <h4>Why these crops?</h4>
+                  <ul>
+                    <li>✅ Suitable for local soil type (alluvial)</li>
+                    <li>✅ Compatible with regional rainfall patterns</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
-      </MapContainer>
-    </div>
 
-   {/* RIGHT PANEL */}
-<div
-  style={{
-    background: "white",
-    borderRadius: "12px",
-    border: "1px solid #D1D5DB",
-    padding: "16px",
-    display: "grid",
-    gridTemplateRows: "1fr auto",
-    height: "520px",
-    gap: "16px",
-  }}
->
-  {/* TOP – Recommendation area */}
-  <div style={{ overflowY: "auto", paddingRight: "6px" }}>
-    {!location && (
-      <>
-        <h3 style={{ color: "#1F4037" }}>Select a location</h3>
-        <p style={mutedText}>
-          Click on the map to get crop and soil insights.
-        </p>
-      </>
-    )}
+       {/* --- 2. WEATHER PAGE --- */}
+        {activePage === "weather" && (
+          <div className="content-fade-in">
+            <header className="page-header">
+              <h1>Weather Forecast</h1>
+              <p>Kasganj, Uttar Pradesh</p>
+            </header>
+            <div className="weather-grid">
+              <div className="weather-main-col">
+                <div className="weather-hero-card">
+                  <div className="hero-content">
+                    <div className="hero-text">
+                      <p className="date-label">Today, December 15</p>
+                      <div className="temp-display">
+                        <span className="main-temp">28°</span>
+                        <div className="condition-box"><h2>Partly Cloudy</h2><p>Feels like 30°C</p></div>
+                      </div>
+                    </div>
+                    <Sun size={100} className="weather-illustration" />
+                  </div>
+                  <div className="weather-metrics">
+                    <div className="metric"><Cloud size={18} /> <div><p>HUMIDITY</p><strong>65%</strong></div></div>
+                    <div className="metric"><Wind size={18} /> <div><p>WIND</p><strong>12 km/h</strong></div></div>
+                    <div className="metric"><Eye size={18} /> <div><p>VISIBILITY</p><strong>10 km</strong></div></div>
+                    <div className="metric"><Gauge size={18} /> <div><p>PRESSURE</p><strong>1015 hPa</strong></div></div>
+                  </div>
+                </div>
+                <div className="hourly-forecast-card">
+                  <h3>Today's Forecast</h3>
+                  <div className="hourly-row">
+                    {["6 AM", "9 AM", "12 PM", "3 PM", "6 PM"].map((t, i) => (
+                      <div key={i} className={`hour-item ${t === "3 PM" ? "active" : ""}`}>
+                        <span>{t}</span><Sun size={20} /><strong>{t === "3 PM" ? "30°" : "22°"}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="weather-side-col">
+                <div className="impact-panel">
+                  <h3>🌡️ Farming Impact</h3>
+                  <div className="advisory-card green"><strong>Ideal for Sowing</strong><p>Current conditions are good for wheat.</p></div>
+                  <div className="advisory-card blue"><strong>Rain Alert</strong><p>Postpone irrigation.</p></div>
+                </div>
+                <div className="sun-moon-card">
+                  <h3>Sun & Moon</h3>
+                  <div className="astro-flex">
+                    <div className="astro-box sunrise"><small>Sunrise</small><strong>6:45 AM</strong></div>
+                    <div className="astro-box sunset"><small>Sunset</small><strong>5:30 PM</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-    {location && (
-      <>
-        <h3 style={{ color: "#1F4037" }}>🌾 Crop Recommendation</h3>
-        <p><strong>Crops:</strong> Wheat, Mustard, Chickpea</p>
-        <p><strong>Confidence:</strong> High</p>
-        <p><strong>Based on:</strong> Soil + Rainfall + Research Data</p>
+        {/* --- 3. FIELD MAP PAGE (Ab yeh Weather ke bahar hai) --- */}
+        {activePage === "fieldMap" && (
+          <div className="content-fade-in">
+            <header className="page-header-flex">
+              <div>
+                <h1>Field Map</h1>
+                <p>Manage and view your agricultural fields</p>
+              </div>
+              <button className="add-field-btn">+ Add Field</button>
+            </header>
+            <div className="map-grid-layout">
+              <div className="map-main-area">
+                <div className="coord-bar">
+                  <div className="input-box"><label>LATITUDE</label><input type="text" value="27.8" readOnly /></div>
+                  <div className="input-box"><label>LONGITUDE</label><input type="text" value="78.65" readOnly /></div>
+                  <button className="go-btn">🚀 Go</button>
+                </div>
+                <div className="interactive-map-container">
+                  <img src="https://via.placeholder.com/800x500/e0e0e0/808080?text=Map+Preview" alt="Map" className="map-img" />
+                </div>
+              </div>
+              <div className="fields-sidebar">
+                <div className="field-list-header"><span>📂</span><h3>Your Fields</h3></div>
+                <div className="field-item"><div className="field-status green"></div><div className="field-info"><strong>North Field</strong><p>Wheat • 4.2 ha</p></div></div>
+                <div className="field-item"><div className="field-status yellow"></div><div className="field-info"><strong>South Field</strong><p>Mustard • 3.8 ha</p></div></div>
+              </div>
+            </div>
+          </div>
+        )}
+      
+ <div className={`nav-item ${activePage === "cropSuggestions" ? "active" : ""}`} onClick={() => setActivePage("cropSuggestions")}>
 
-        <div
-          style={{
-            marginTop: "12px",
-            background: "#F0F7F4",
-            padding: "12px",
-            borderRadius: "10px",
-            border: "1px solid #CFE3DB",
-          }}
-        >
-          <h4 style={{ color: "#1F4037" }}>🌱 Soil & Region</h4>
-          <p style={smallText}>Kasganj, Uttar Pradesh</p>
-          <p style={smallText}>Loamy to Sandy soil</p>
-          <p style={smallText}>Moderate rainfall</p>
+{activePage === "cropSuggestions" && (
+  <div className="content-fade-in">
+    <header className="page-header">
+      <h1>Crop Suggestions</h1>
+      <p className="subtitle-small">AI-powered recommendations based on your soil and weather data</p>
+    </header>
+
+    <div className="crops-container-layout">
+      {/* LEFT SIDE: Crop Selector List */}
+      <div className="crop-sidebar-list">
+        {[
+          { name: "Wheat", season: "Rabi • 120-150 days", match: "92%", icon: "🌾", active: true },
+          { name: "Mustard", season: "Rabi • 110-140 days", match: "87%", icon: "🌻", active: false },
+          { name: "Chickpea", season: "Rabi • 95-110 days", match: "84%", icon: "🫘", active: false },
+          { name: "Barley", season: "Rabi • 100-120 days", match: "78%", icon: "🌱", active: false }
+        ].map((crop, idx) => (
+          <div key={idx} className={`crop-mini-card ${crop.active ? 'active' : ''}`}>
+            <span className="mini-icon">{crop.icon}</span>
+            <div className="mini-info">
+              <h4>{crop.name}</h4>
+              <p>{crop.season}</p>
+            </div>
+            <div className="mini-match">
+              <div className="progress-bar"><div className="progress-fill" style={{width: crop.match}}></div></div>
+              <span>{crop.match} match</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* RIGHT SIDE: Main Analysis Area */}
+      <div className="crop-analysis-main">
+        {/* Main Hero Card */}
+        <div className="crop-detail-hero">
+          <div className="hero-top-flex">
+            <span className="large-icon">🌾</span>
+            <div className="hero-title-box">
+              <h2>Wheat</h2>
+              <p>Rabi Season Crop</p>
+            </div>
+            <span className="confidence-pill">92% Match</span>
+          </div>
+          
+          <p className="hero-text-desc">
+            Ideal for the current soil conditions. High yield potential with proper irrigation management.
+          </p>
+
+          <div className="quick-stats-grid">
+            <div className="qs-item"><small>Water Need</small><strong>Medium</strong></div>
+            <div className="qs-item"><small>Temperature</small><strong>15-25°C</strong></div>
+            <div className="qs-item"><small>Duration</small><strong>120-150 days</strong></div>
+            <div className="qs-item"><small>Soil Type</small><strong>Loamy</strong></div>
+          </div>
         </div>
-      </>
-    )}
+
+        {/* Bottom Split Cards */}
+        <div className="bottom-info-flex">
+          <div className="info-box-card">
+            <h3>🛡️ Why This Crop?</h3>
+            <ul>
+              <li>Well-suited for alluvial soil in your region</li>
+              <li>Compatible with current moisture levels</li>
+              <li>Good market price expected this season</li>
+              <li>Lower pest risk in winter months</li>
+            </ul>
+          </div>
+
+          <div className="info-box-card">
+            <h3>💡 Growing Tips</h3>
+            <ol>
+              <li>Sow seeds 2-3 cm deep</li>
+              <li>Maintain row spacing of 20-22 cm</li>
+              <li>First irrigation at 20-25 days after sowing</li>
+              <li>Apply nitrogen fertilizer in 2-3 split doses</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-
-  {/* BOTTOM – Soil Mapping (always visible) */}
-  <div
-    style={{
-      background: "#F9FAFB",
-      padding: "12px",
-      borderRadius: "10px",
-      border: "1px solid #E5E7EB",
-    }}
-  >
-   
-    <h4 style={{ color: "#1F4037", marginBottom: "8px" }}>
-      🧪 Soil {nutrient} Levels
-    </h4>
-
-    {nutrient === "pH" ? (
-      <>
-        <Legend color="#60a5fa" text="Acidic (< 6)" />
-        <Legend color="#22c55e" text="Neutral (6 – 7.5)" />
-        <Legend color="#f97316" text="Alkaline (> 7.5)" />
-      </>
-    ) : (
-      <>
-        <Legend color="#ef4444" text="Low" />
-        <Legend color="#facc15" text="Medium" />
-        <Legend color="#22c55e" text="High" />
-      </>
-    )}
-  </div>
-
-   <select
-  value={nutrient}
-  onChange={(e) => setNutrient(e.target.value)}
-  style={{
-    width: "100%",
-    maxWidth: "260px",
-    padding: "10px 14px",
-    borderRadius: "12px",
-    border: "1px solid #D1D5DB",
-    background: "linear-gradient(135deg, #ffffff, #f9fafb)",
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#1F2937",
-    cursor: "pointer",
-    outline: "none",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
-    transition: "all 0.25s ease",
-    appearance: "none",
-    backgroundImage:
-      "url(\"data:image/svg+xml,%3Csvg fill='none' stroke='%231f2937' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")",
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 14px center",
-    backgroundSize: "16px",
-  }}
->
-  <option value="N">Nitrogen</option>
-  <option value="P">Phosphorus</option>
-  <option value="K">Potassium</option>
-  <option value="pH">Soil pH</option>
-</select>
+)}
 </div>
 
-   
-      
-    </div>
-)}
-
-
-   {/* ================= SETTINGS ================= */}
-{activeTab === "settings" && (
-  <div
-    style={{
-      maxWidth: "1000px",
-      margin: "40px auto",
-      display: "grid",
-      gridTemplateColumns: "2.5fr 1fr",
-      gap: "32px",
-    }}
-  >
-    {/* LEFT CARD */}
-    <div
-      style={{
-        background: "#ffffff",
-        borderRadius: "16px",
-        padding: "32px",
-        border: "1px solid #E5E7EB",
-      }}
-    >
-      <h2 style={{ marginBottom: "6px" }}>⚙️ Account Settings</h2>
-      <p style={mutedText}>
-        Manage your personal information and account preferences.
-      </p>
-
-      {/* BASIC INFO */}
-      <h4 style={{ marginTop: "28px", marginBottom: "14px" }}>
-        Basic Information
-      </h4>
-
-      <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-        <img
-          src="https://i.pravatar.cc/150?img=3"
-          alt="profile"
-          style={{
-            width: "90px",
-            height: "90px",
-            borderRadius: "50%",
-            objectFit: "cover",
-          }}
-        />
-        <div>
-          <button
-            style={{
-              padding: "6px 12px",
-              borderRadius: "8px",
-              border: "1px solid #A7F3D0",
-              background: "#ECFDF5",
-              color: "#065F46",
-              cursor: "pointer",
-            }}
-          >
-            Upload new picture
-          </button>
-          <p
-            style={{
-              marginTop: "6px",
-              fontSize: "13px",
-              color: "#EF4444",
-              cursor: "pointer",
-            }}
-          >
-            Remove
-          </p>
-        </div>
-      </div>
-
-      {/* FIELDS */}
-      <div style={{ marginTop: "24px" }}>
-        <SettingRow label="Name" value="Ramu Rathore" />
-        <SettingRow label="Date of Birth" value="18 June 2004" />
-        <SettingRow label="Gender" value="Male" />
-        <SettingRow label="Email" value="Ramu@agrismart.ai" />
-      </div>
-
-      {/* ACCOUNT INFO */}
-      <h4 style={{ marginTop: "28px", marginBottom: "14px" }}>
-        Account Information
-      </h4>
-
-      <SettingRow label="Username" value="ramu_agrismart" />
-      <SettingRow label="Password" value="********" />
-    </div>
-
-    {/* RIGHT GUIDE */}
-    <div
-      style={{
-        background: "linear-gradient(135deg, #DCFCE7, #ECFEFF)",
-        borderRadius: "16px",
-        padding: "24px",
-        border: "1px solid #BBF7D0",
-        height: "fit-content",
-      }}
-    >
-      <h4 style={{ marginBottom: "8px", color: "#065F46" }}>
-        Guide to setup your account
-      </h4>
-      <p style={{ fontSize: "14px", lineHeight: "1.6", color: "#064E3B" }}>
-        Keeping your profile updated helps AgriSmart generate accurate crop
-        recommendations using soil health cards, weather data, and
-        admin-validated research datasets.
-      </p>
-    </div>
-  </div>
-)}
-
-
-      {/* 🔻 FOOTER */}
-      <footer
-        style={{
-          marginTop: "30px",
-          padding: "18px",
-          textAlign: "center",
-          fontSize: "13px",
-          color: "#6B7280",
-          background: "#FFFFFF",
-          borderTop: "1px solid #E5E7EB",
-        }}
-      >
-        🌱 AgriSmart — AI-Driven Crop Recommendation System
-        <br />
-        Powered by Soil Health Data • Researcher Contributions • Admin Validation
-      </footer>
+      </main>
     </div>
   );
-};
-
-/* 🎨 Styles */
-const navItem = (active) => ({
-  cursor: "pointer",
-  fontSize: "15px",
-  paddingBottom: "4px",
-  borderBottom: active ? "2px solid #A7F3D0" : "2px solid transparent",
-});
-
-const mutedText = {
-  color: "#6B7280",
-  fontSize: "14px",
-};
-
-const smallText = {
-  fontSize: "13px",
-  color: "#374151",
-};
-
-
-export default AgriSmartDashboard;
+}
