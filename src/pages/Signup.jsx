@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "./Signup.css";
 
-const Signup = ({ goBack }) => {
+const Signup = () => {
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -20,115 +20,69 @@ const Signup = ({ goBack }) => {
 
   const validate = () => {
     let newErrors = {};
-
-    // Name: only letters + spaces
-    if (!/^[A-Za-z ]+$/.test(form.fullName)) {
-      newErrors.fullName = "Name should contain only alphabets";
-    }
-
-    // Email validation
+    if (!/^[A-Za-z ]+$/.test(form.fullName)) newErrors.fullName = "Name should contain alphabets only";
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      newErrors.email = "Enter a valid email address";
-    }
-
-    // Password:
-    // Minimum 8 characters, at least 1 letter and 1 number
+    if (!emailRegex.test(form.email)) newErrors.email = "Enter a valid email";
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-    if (!passwordRegex.test(form.password)) {
-      newErrors.password =
-        "Password must be at least 8 characters and include letters & numbers";
-    }
-
+    if (!passwordRegex.test(form.password)) newErrors.password = "Min 8 chars, must include letters & numbers";
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     if (!validate()) return;
-
-    console.log("Signup data:", form);
-
     localStorage.setItem("role", form.role);
-
-    if (form.role === "Admin") navigate("/admin/dashboard");
-    else if (form.role === "User") navigate("/user/dashboard");
-    else if (form.role === "Researcher") navigate("/researcher/dashboard");
+    navigate(form.role === "Admin" ? "/admin/dashboard" : form.role === "Researcher" ? "/researcher/dashboard" : "/user/dashboard");
   };
 
-  const roleOptions = [
-    { role: "Admin", icon: "⚙️" },
-    { role: "User", icon: "👤" },
-    { role: "Researcher", icon: "🔬" },
-  ];
-
   return (
-    <div className="auth-wrapper">
-      <div className="auth-box">
-        <h1 className="brand">🌱 AgriSmart</h1>
-        <p className="subtitle">Create your account</p>
+    <div className="signup-wrapper">
+      <div className="signup-card">
+        <div className="brand-section">
+          <h1 className="brand-logo">🌱 AgriSmart</h1>
+          <p className="brand-tagline">Join the future of precision farming</p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <input
-            type="text"
-            name="fullName"
-            placeholder="Full Name"
-            value={form.fullName}
-            onChange={handleChange}
-            required
-          />
-          {errors.fullName && <p className="error">{errors.fullName}</p>}
-
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
-          {errors.email && <p className="error">{errors.email}</p>}
-
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
-          {errors.password && <p className="error">{errors.password}</p>}
-
-          <label className="role-label">Choose Role</label>
-          <div className="role-options">
-            {roleOptions.map((item) => (
-              <label
-                key={item.role}
-                className={`role-card ${
-                  form.role === item.role ? "active" : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="role"
-                  value={item.role}
-                  checked={form.role === item.role}
-                  onChange={handleChange}
-                />
-                <span className="role-icon">{item.icon}</span>
-                <span>{item.role}</span>
-              </label>
-            ))}
+        <form onSubmit={handleSubmit} className="signup-form">
+          <div className="input-group">
+            <input type="text" name="fullName" placeholder="Full Name" value={form.fullName} onChange={handleChange} required />
+            {errors.fullName && <p className="error-msg">{errors.fullName}</p>}
           </div>
 
-          <button type="submit" className="btn-primary">Sign Up</button>
+          <div className="input-group">
+            <input type="email" name="email" placeholder="Email Address" value={form.email} onChange={handleChange} required />
+            {errors.email && <p className="error-msg">{errors.email}</p>}
+          </div>
+
+          <div className="input-group">
+            <input type="password" name="password" placeholder="Password" value={form.password} onChange={handleChange} required />
+            {errors.password && <p className="error-msg">{errors.password}</p>}
+          </div>
+
+          <div className="role-selector">
+            <p className="section-title">Select Your Role</p>
+            <div className="role-grid">
+              {["Admin", "User", "Researcher"].map((r) => (
+                <label key={r} className={`role-item ${form.role === r ? "selected" : ""}`}>
+                  <input type="radio" name="role" value={r} checked={form.role === r} onChange={handleChange} />
+                  <span className="role-name">{r}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button type="submit" className="btn-signup-premium">Create Account</button>
         </form>
 
-        <button type="button" onClick={goBack} className="btn-secondary">
-          ← Back to Home
-        </button>
+        {/* --- IDHAR CHANGE KIYA HAI BAS --- */}
+        <div className="card-footer">
+          <p>
+            Already a member? <Link to="/login" className="login-link-alt">Login Here</Link>
+          </p>
+          <button onClick={() => navigate("/")} className="btn-ghost">← Back to Home</button>
+        </div>
       </div>
     </div>
   );

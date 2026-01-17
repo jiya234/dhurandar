@@ -1,42 +1,17 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "./Home.css"; 
+import { useNavigate, Link } from "react-router-dom";
+import "./Login.css";
 
-const Login = ({ goBack }) => {
+const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
-  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" });
-  };
-
-  const validate = () => {
-    let newErrors = {};
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      newErrors.email = "Enter a valid email address";
-    }
-
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-    if (!passwordRegex.test(form.password)) {
-      newErrors.password =
-        "Password must be at least 8 characters and include letters & numbers";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validate()) return;
-
-    console.log("Login data:", form);
-
     const role = localStorage.getItem("role") || "User";
 
     if (role === "Admin") navigate("/admin/dashboard");
@@ -45,40 +20,56 @@ const Login = ({ goBack }) => {
   };
 
   return (
-    <div className="auth-wrapper">
-      <div className="auth-box">
-        <h1 className="brand">🌱 AgriSmart</h1>
-        <p className="subtitle">Sign in</p>
+    <div className="login-wrapper">
+      <div className="login-card">
+        <div className="logo">
+          <span className="logo-icon">🌱</span>
+          <span className="logo-text">AgriSmart</span>
+        </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
-          {errors.email && <p className="error">{errors.email}</p>}
+        <h2 className="login-title">Login</h2>
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
-          {errors.password && <p className="error">{errors.password}</p>}
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="login-input-group">
+            <label>Email Address</label>
+            <input
+              type="email"
+              name="email"
+              placeholder="Enter your email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-          <button type="submit" className="btn-primary">Login</button>
+          <div className="login-input-group">
+            <label>Password</label>
+            <div className="password-wrapper">
+              <input
+                type="password"
+                name="password"
+                placeholder="Enter your password"
+                value={form.password}
+                onChange={handleChange}
+                required
+              />
+              <span className="eye-icon">👁</span>
+            </div>
+          </div>
+
+          <div className="forgot-password">Forgot password?</div>
+
+          <button type="submit" className="btn-login">
+            Login
+          </button>
         </form>
 
-        {goBack && (
-          <button type="button" onClick={goBack} className="btn-secondary">
-            ← Back to Home
-          </button>
-        )}
+        <p className="signup-text">
+          Don't have an account?{" "}
+          <Link to="/signup" className="signup-link">
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -18,9 +18,8 @@ const Home = () => {
           </p>
 
           <div className="hero-buttons">
-            {/* Go to Signup */}
-            <Link to="/get-started">
-
+            {/* Seedhe Login page par bhejne ke liye niche link badal diya hai */}
+            <Link to="/login">
               <button className="primary">Get Started</button>
             </Link>
 
