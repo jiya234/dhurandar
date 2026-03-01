@@ -3,7 +3,7 @@ import { Sun, Cloud, Wind, Eye, Gauge } from "lucide-react";
 import "./Weather.css"; // 👈 make sure this file is linked
 
 const Weather = () => {
-  const API_KEY = "43ef35045c8f53ed9fd6a462d0354108";
+  const API_KEY = process.env.REACT_APP_WEATHER_API_KEY;
   const CITY = "Kasganj";
   const COUNTRY = "IN";
 
