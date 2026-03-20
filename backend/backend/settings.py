@@ -94,19 +94,20 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'agrismart_db',
-        'USER': 'postgres',
-        'PASSWORD': '1709',
-        'HOST': 'localhost',
+        'NAME': 'neondb',
+        'USER': 'neondb_owner',
+        'PASSWORD': 'npg_o9aPVFSl6veQ',
+        'HOST': 'ep-dawn-wave-ai5lexdl-pooler.c-4.us-east-1.aws.neon.tech',
         'PORT': '5432',
+        'OPTIONS': {
+            'sslmode': 'require',
+            'channel_binding': 'disable'
+        },
     }
 }
-
-
 
 
 # Password validation
