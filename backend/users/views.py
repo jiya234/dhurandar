@@ -34,3 +34,23 @@ class LoginView(APIView):
             "email": user.email,
             "full_name": user.full_name
         }, status=status.HTTP_200_OK)
+from django.contrib.auth import logout
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def logout_view(request):
+    if request.method == "POST":
+        logout(request)
+        return JsonResponse({"message": "Logged out successfully"})
+    return JsonResponse({"error": "Invalid request"}, status=400)
+from django.http import JsonResponse
+from .models import User, Research, Request, Dataset # Apne models ke naam check kar lena
+
+def admin_dashboard_stats(request):
+    data = {
+        "total_users": User.objects.count(),
+        "active_researchers": Research.objects.filter(status='ongoing').count(),
+       
+    }
+    return JsonResponse(data)
