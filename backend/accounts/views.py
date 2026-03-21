@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import OTP
 from django.core.cache import cache
-
+from django.conf import settings
 
 @api_view(['POST'])
 def send_otp(request):
@@ -18,7 +18,7 @@ def send_otp(request):
     send_mail(
         'AgriSmart OTP',
         f'Your OTP is {otp}',
-        'jeeya.dhiman.2006@gmail.com',
+        settings.EMAIL_HOST_USER,
         [email],
         fail_silently=False,
     )
