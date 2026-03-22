@@ -12,7 +12,6 @@ import {
   CropIcon
 } from "lucide-react";
 import "./Users.css";
-import Weather from "./Weather";
 
 // --- Leaflet Icon Fix ---
 delete L.Icon.Default.prototype._getIconUrl;
@@ -28,7 +27,19 @@ export default function UserDashboard() {
   const [inputLat, setInputLat] = useState("27.80");
   const [inputLng, setInputLng] = useState("78.65");
   const [isAnalyzing, setIsAnalyzing] = useState(false); // Loading state
-  
+
+const [user, setUser] = useState({ name: "", email: "", role: "" });
+
+  useEffect(() => {
+  const email = localStorage.getItem("email");
+  const token = localStorage.getItem("token");
+fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
+    headers: { Authorization: `Token ${token}` }
+  })
+    .then(res => res.json())
+    .then(data => setUser({ name: data.full_name, email: data.email, role: data.role }))
+    .catch(() => setUser({ name: "User", email, role: "" }));
+}, []);
   // Default Crops
   const [currentRecommendations, setCurrentRecommendations] = useState([
     { name: "Wheat", match: "92%", icon: "🌾", color: "green" },
@@ -225,7 +236,7 @@ export default function UserDashboard() {
        {activePage === "dashboard" && (
   <div className="content-fade-in" key="dashboard">
     <header className="page-header">
-      <h1>Good Morning, Ramesh 👋</h1>
+    <h1>Good Morning, {user.name} 👋</h1>
       <p>Here's what's happening with your fields today</p>
     </header>
 
@@ -406,10 +417,48 @@ export default function UserDashboard() {
           </div>
         )}
 
-        {/* 2.Weather PAGE */}
+        {/* 2. WEATHER PAGE */}
         {activePage === "weather" && (
-           <div className="content-fade-in" key="weather">
-            <Weather />
+          <div className="content-fade-in" key="weather">
+            <header className="page-header"><h1>Weather Forecast</h1><p>Kasganj, Uttar Pradesh</p></header>
+            <div className="weather-grid">
+              <div className="weather-main-col">
+                <div className="weather-hero-card">
+                  <div className="hero-content">
+                    <div className="hero-text"><p className="date-label">Today, December 15</p><div className="temp-display"><span className="main-temp">28°</span><div className="condition-box"><h2>Partly Cloudy</h2><p>Feels like 30°C</p></div></div></div>
+                    <Sun size={100} className="weather-illustration" />
+                  </div>
+                  <div className="weather-metrics">
+                    <div className="metric"><Cloud size={18} /> <div><p>HUMIDITY</p><strong>65%</strong></div></div>
+                    <div className="metric"><Wind size={18} /> <div><p>WIND</p><strong>12 km/h</strong></div></div>
+                    <div className="metric"><Eye size={18} /> <div><p>VISIBILITY</p><strong>10 km</strong></div></div>
+                    <div className="metric"><Gauge size={18} /> <div><p>PRESSURE</p><strong>1015 hPa</strong></div></div>
+                  </div>
+                </div>
+                <div className="hourly-forecast-card">
+                  <h3>Today's Forecast</h3>
+                  <div className="hourly-row">
+                    {["6 AM", "9 AM", "12 PM", "3 PM", "6 PM"].map((t, i) => (
+                      <div key={i} className={`hour-item ${t === "3 PM" ? "active" : ""}`}><span>{t}</span><Sun size={20} /><strong>{t === "3 PM" ? "30°" : "22°"}</strong></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="weather-side-col">
+                <div className="impact-panel">
+                  <h3>🌡️ Farming Impact</h3>
+                  <div className="advisory-card green"><strong>Ideal for Sowing</strong><p>Current conditions are good for wheat.</p></div>
+                  <div className="advisory-card blue"><strong>Rain Alert</strong><p>Postpone irrigation.</p></div>
+                </div>
+                <div className="sun-moon-card">
+                  <h3>Sun & Moon</h3>
+                  <div className="astro-flex">
+                    <div className="astro-box sunrise"><small>Sunrise</small><strong>6:45 AM</strong></div>
+                    <div className="astro-box sunset"><small>Sunset</small><strong>5:30 PM</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
