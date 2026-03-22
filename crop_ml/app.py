@@ -1,145 +1,227 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, jsonify
 import numpy as np
-import pickle
 import requests
 import os
 from dotenv import load_dotenv
+import pandas as pd
+import joblib
+from flask_cors import CORS
 
 # ---------------------------------
-# Load Environment Variables
+# INIT
 # ---------------------------------
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
 # ---------------------------------
-# Load Models
+# LOAD MODELS
 # ---------------------------------
-multi_model = pickle.load(open("multidataset_model.pkl", "rb"))
-multi_scaler = pickle.load(open("multidataset_scaler.pkl", "rb"))
+season_model = joblib.load("models/season_model.pkl")
 
-ds3_model = pickle.load(open("dataset3_model.pkl", "rb"))
-ds3_scaler = pickle.load(open("dataset3_scaler.pkl", "rb"))
+soil_model = joblib.load("models/soil_health_model.pkl")
+nutrient_model = joblib.load("models/nutrient_deficiency_model.pkl")
+scaler = joblib.load("models/soil_scaler.pkl")
+
+# crop labels
+crop_labels = ['groundnut', 'maize', 'mustard', 'pea', 'pearl millet', 'potato', 'rice']
 
 # ---------------------------------
-# Weather API Function
+# WEATHER API
 # ---------------------------------
 def get_weather(city):
     api_key = os.getenv("WEATHER_API_KEY")
 
     if not api_key:
-        print("ERROR: API Key not found in .env")
         return None, None
 
     url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
 
     try:
-        response = requests.get(url)
-        data = response.json()
+        res = requests.get(url)
+        data = res.json()
 
-        if response.status_code != 200:
-            print("Weather API Error:", data)
+        if res.status_code != 200:
             return None, None
 
-        temperature = data["main"]["temp"]
-        humidity = data["main"]["humidity"]
+        return data["main"]["temp"], data["main"]["humidity"]
 
-        return temperature, humidity
-
-    except Exception as e:
-        print("Weather Fetch Error:", e)
+    except:
         return None, None
 
 
 # ---------------------------------
-# Routes
+# FEATURE BUILDER
 # ---------------------------------
+def build_features(N, P, K, ph, rainfall, temp, humidity):
 
-@app.route('/')
-def index():
-    return render_template("index.html")
+    npk_total = N + P + K
+    soil_fertility = 0.4*N + 0.3*P + 0.3*K
+
+    n_p_ratio = N / (P + 1)
+    n_k_ratio = N / (K + 1)
+    p_k_ratio = P / (K + 1)
+
+    water_index = rainfall * humidity
+    gdd_approx = temp - 10
+
+    season_rabi = 1
+
+    return np.array([[  
+        N, P, K,
+        temp, humidity,
+        ph, rainfall,
+        npk_total,
+        soil_fertility,
+        n_p_ratio,
+        n_k_ratio,
+        p_k_ratio,
+        water_index,
+        gdd_approx,
+        season_rabi
+    ]])
+
+# ---------------------------------
+# SOIL HELPERS
+# ---------------------------------
+def soil_category(score):
+    if score < 40:
+        return "Poor"
+    elif score < 70:
+        return "Moderate"
+    else:
+        return "Healthy"
 
 
+def soil_suggestions(category):
+    if category == "Poor":
+        return [
+            "Increase Nitrogen using urea or compost",
+            "Add organic matter to improve soil fertility",
+            "Check soil salinity and drainage"
+        ]
+    elif category == "Moderate":
+        return [
+            "Maintain balanced fertilization",
+            "Add organic compost regularly",
+            "Monitor micronutrient levels"
+        ]
+    else:
+        return [
+            "Soil is healthy",
+            "Maintain current nutrient balance",
+            "Continue sustainable farming practices"
+        ]
+
+# ---------------------------------
+# 🔥 CROP API
+# ---------------------------------
 @app.route('/predict', methods=['POST'])
-def predict():
-
-    # Default safe values
-    recommendations = []
-    model_name = ""
-    temp = None
-    humidity = None
-
+def predict_api():
     try:
-        # Form Inputs
-        N = float(request.form['Nitrogen'])
-        P = float(request.form['Phosphorus'])
-        K = float(request.form['Potassium'])
-        ph = float(request.form['Ph'])
-        rainfall = float(request.form['Rainfall'])
-        city = request.form['city']
-        state = request.form['state']
-        district = request.form['district']
-        model_choice = request.form['model_choice']
+        data = request.json
 
-        # Weather Fetch
+        N = float(data['Nitrogen'])
+        P = float(data['Phosphorus'])
+        K = float(data['Potassium'])
+        ph = float(data['Ph'])
+        rainfall = float(data['Rainfall'])
+        city = data['city']
+
         temp, humidity = get_weather(city)
 
         if temp is None:
-            return render_template("index.html", result="❌ Weather API error.")
+            return jsonify({"error": "Weather API error"})
 
-        # Feature order MUST match training dataset
-        features = np.array([[N, P, K, temp, humidity, ph, rainfall]])
+        features = build_features(N, P, K, ph, rainfall, temp, humidity)
 
-        # Select Model
-        if model_choice == "multidataset":
-            model = multi_model
-            scaler = multi_scaler
-            model_name = "Multi Dataset Model"
-        else:
-            model = ds3_model
-            scaler = ds3_scaler
-            model_name = "Actual Dataset Model"
+        probs = season_model.predict_proba(features)[0]
+        idx = np.argsort(probs)[-3:][::-1]
 
-        # Scale Features
-        features_scaled = scaler.transform(features)
-
-        # Predict Probabilities
-        probabilities = model.predict_proba(features_scaled)[0]
-
-        # Get Top 3 Crops
-        top3_indices = np.argsort(probabilities)[-3:][::-1]
-        top3_crops = model.classes_[top3_indices]
-        top3_scores = probabilities[top3_indices]
-
-        for crop, score in zip(top3_crops, top3_scores):
-            recommendations.append({
-                "crop": crop.capitalize(),
-                "confidence": round(score * 100, 2)
+        result = []
+        for i in idx:
+            result.append({
+                "crop": crop_labels[i],
+                "confidence": float(round(probs[i]*100, 2))
             })
 
-    except Exception as e:
-        print("Prediction Error:", e)
-        recommendations = [{"crop": "Error", "confidence": 0}]
+        return jsonify({
+            "recommendations": result,
+            "temperature": float(temp),
+            "humidity": float(humidity)
+        })
 
-    return render_template(
-        "index.html",
-        recommendations=recommendations,
-        model_name=model_name,
-        N=request.form.get('Nitrogen'),
-        P=request.form.get('Phosphorus'),
-        K=request.form.get('Potassium'),
-        ph=request.form.get('Ph'),
-        rainfall=request.form.get('Rainfall'),
-        district=request.form.get('district'),
-        city=request.form.get('city'),
-        state=request.form.get('state'),
-        temp=temp,
-        humidity=humidity
-    )
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 # ---------------------------------
-# Run App
+# 🔥 SOIL HEALTH API
+# ---------------------------------
+@app.route('/soil-health', methods=['POST'])
+def soil_health_api():
+    try:
+        data = request.get_json()
+
+        N = float(data["N"])
+        P = float(data["P"])
+        K = float(data["K"])
+        pH = float(data["pH"])
+        EC = float(data["EC"])
+        OC = float(data["OC"])
+        S = float(data["S"])
+        Fe = float(data["Fe"])
+        Zn = float(data["Zn"])
+        Mn = float(data["Mn"])
+        Cu = float(data["Cu"])
+
+        nutrient_sample = pd.DataFrame({
+            "N":[N], "P":[P], "K":[K],
+            "S":[S], "Fe":[Fe], "Zn":[Zn],
+            "Mn":[Mn], "Cu":[Cu],
+            "OC":[OC], "EC":[EC], "pH":[pH]
+        })
+
+        soil_sample = nutrient_sample[[
+            "N","P","K","EC","OC","pH","S","Fe","Zn","Mn","Cu"
+        ]]
+
+        # soil prediction
+        sample_scaled = scaler.transform(soil_sample)
+        sample_scaled = pd.DataFrame(sample_scaled, columns=soil_sample.columns)
+
+        predicted_shi = float(soil_model.predict(sample_scaled)[0])
+
+        category = soil_category(predicted_shi)
+        suggestions = soil_suggestions(category)
+
+        # nutrient deficiency
+        pred = nutrient_model.predict(nutrient_sample)[0]
+
+        nutrients = [
+            "Nitrogen","Phosphorus","Potassium",
+            "Sulphur","Iron","Zinc","Manganese","Copper"
+        ]
+
+        deficiencies = []
+        for nutrient, status in zip(nutrients, pred):
+            if status == "Low":
+                deficiencies.append(nutrient + " Low")
+
+        return jsonify({
+            "shi": round(predicted_shi, 2),
+            "category": category,
+            "deficiencies": deficiencies,
+            "suggestions": suggestions
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
+# ---------------------------------
+# RUN
 # ---------------------------------
 if __name__ == "__main__":
     app.run(debug=True)

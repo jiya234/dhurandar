@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import CropSuggestionUI from "./CropSuggestionUI";
+import SoilHealthUI from "./SoilHealthUI";
 // ✅ FIX 1: Rectangle import kiya
 import { MapContainer, TileLayer, Marker, Popup, Rectangle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css'; 
@@ -6,7 +8,8 @@ import L from 'leaflet';
 import { 
   Cloud, Sun, Wind, Eye, Gauge, Map, Settings, 
   LayoutDashboard, CloudRain, Wheat, Navigation, X, LogOut, 
-  Database, FileText, Download // ✅ Database yahan add hona zaroori hai
+  Database, FileText, Download, // ✅ Database yahan add hona zaroori hai
+  CropIcon
 } from "lucide-react";
 import "./Users.css";
 import Weather from "./Weather";
@@ -201,7 +204,7 @@ export default function UserDashboard() {
           <div className={`nav-item ${activePage === "weather" ? "active" : ""}`} onClick={() => setActivePage("weather")}><Cloud size={18} /> <span>Weather</span></div>
           <div className={`nav-item ${activePage === "fieldMap" ? "active" : ""}`} onClick={() => setActivePage("fieldMap")}><Map size={18} /> <span>Field Map</span></div>
           <div className={`nav-item ${activePage === "cropSuggestions" ? "active" : ""}`} onClick={() => setActivePage("cropSuggestions")}><Wheat size={18} /> <span>Crop Suggestions</span></div>
-          
+          <div className={`nav-item ${activePage === "soilHealth" ? "active" : ""}`} onClick={() => setActivePage("soilHealth")}><Wheat size={18} /><span>Soil Health</span></div>
           {/* ✅ 2. NEW SIDEBAR ITEM ADDED HERE */}
           <div className={`nav-item ${activePage === "researcherData" ? "active" : ""}`} onClick={() => setActivePage("researcherData")}>
             <Database size={18} /> <span>Researcher Data</span>
@@ -528,38 +531,11 @@ export default function UserDashboard() {
         )}
 
         {/* 4. CROP SUGGESTIONS PAGE */}
-        {activePage === "cropSuggestions" && (
-          <div className="content-fade-in" key="crops">
-            <header className="page-header"><h1>Crop Suggestions</h1><p className="subtitle-small">AI-powered recommendations</p></header>
-            <div className="crops-container-layout">
-              <div className="crop-sidebar-list">
-                {cropsData.map((crop) => (
-                  <div key={crop.id} className={`crop-mini-card ${selectedCrop.id === crop.id ? 'active' : ''}`} onClick={() => setSelectedCrop(crop)}>
-                    <span className="mini-icon">{crop.icon}</span>
-                    <div className="mini-info"><h4>{crop.name}</h4><p>{crop.season}</p></div>
-                    <div className="mini-match"><div className="progress-bar"><div className="progress-fill" style={{width: crop.match}}></div></div><span>{crop.match} match</span></div>
-                  </div>
-                ))}
-              </div>
-              <div className="crop-analysis-main">
-                <div className="crop-detail-hero">
-                  <div className="hero-top-flex"><span className="large-icon">{selectedCrop.icon}</span><div className="hero-title-box"><h2>{selectedCrop.name}</h2><p>Rabi Season Crop</p></div><span className="confidence-pill">{selectedCrop.match} Match</span></div>
-                  <p className="hero-text-desc">{selectedCrop.desc}</p>
-                  <div className="quick-stats-grid">
-                    <div className="qs-item"><small>Water Need</small><strong>{selectedCrop.stats.water}</strong></div>
-                    <div className="qs-item"><small>Temperature</small><strong>{selectedCrop.stats.temp}</strong></div>
-                    <div className="qs-item"><small>Duration</small><strong>{selectedCrop.stats.duration}</strong></div>
-                    <div className="qs-item"><small>Soil Type</small><strong>{selectedCrop.stats.soil}</strong></div>
-                  </div>
-                </div>
-                <div className="bottom-info-flex">
-                  <div className="info-box-card"><h3>🛡️ Why This Crop?</h3><ul>{selectedCrop.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul></div>
-                  <div className="info-box-card"><h3>💡 Growing Tips</h3><ol>{selectedCrop.tips.map((t, i) => <li key={i}>{t}</li>)}</ol></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {activePage === "cropSuggestions" && <CropSuggestionUI />}
+
+        {/* 4. Soil Health PAGE */}          
+        {activePage === "soilHealth" && <SoilHealthUI />}
+                   
 
         {/* 5. SETTINGS PAGE */}
         {activePage === "settings" && (
