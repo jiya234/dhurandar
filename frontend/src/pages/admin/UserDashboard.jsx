@@ -48,40 +48,69 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
     { name: "Chickpea", match: "84%", icon: "🫘", color: "brown" }
   ]);
 
-  // --- 🧠 FAKE AI LOGIC TO UPDATE CROPS ---
-  const handleAnalyzeLocation = () => {
-    setIsAnalyzing(true); // Loading shuru
+  // --- 🧠 AI LOGIC TO UPDATE CROPS ---
+  const handleGenerate = async () => {
+  try {
+    setIsAnalyzing(true);
+    let payload = {};
 
-    // 1.5 Second ka delay taaki lage AI soch raha hai
-    setTimeout(() => {
-      const lat = parseFloat(inputLat);
-      
-      // Simple Logic: Agar Latitude 28 se zyada hai toh alag crops, nahi toh default
-      if (lat > 28.00) {
-        setCurrentRecommendations([
-          { name: "Barley", match: "95%", icon: "🌱", color: "green" },
-          { name: "Potato", match: "88%", icon: "🥔", color: "yellow" },
-          { name: "Peas", match: "82%", icon: "🟢", color: "green" }
-        ]);
-      } else if (lat < 27.00) {
-        setCurrentRecommendations([
-          { name: "Rice", match: "91%", icon: "🍚", color: "green" },
-          { name: "Sugarcane", match: "86%", icon: "🎋", color: "yellow" },
-          { name: "Maize", match: "79%", icon: "🌽", color: "yellow" }
-        ]);
-      } else {
-        // Wapis Default (Kasganj area)
-        setCurrentRecommendations([
-          { name: "Wheat", match: "92%", icon: "🌾", color: "green" },
-          { name: "Mustard", match: "87%", icon: "🌻", color: "yellow" },
-          { name: "Chickpea", match: "84%", icon: "🫘", color: "brown" }
-        ]);
+    // ✅ CASE 1: lat/lon available
+    if (inputLat && inputLng) {
+      if (isNaN(inputLat) || isNaN(inputLng)) {
+      alert("Please enter valid numeric latitude and longitude");
+      return;
       }
-      
-      setIsAnalyzing(false); // Loading khatam
-      alert(`📍 Location Analyzed: ${inputLat}, ${inputLng}\n✅ Recommendations Updated!`);
-    }, 1500);
+      payload = {
+        latitude: parseFloat(inputLat),
+        longitude: parseFloat(inputLng)
+      };
+    } 
+    
+    // ✅ CASE 2: manual input
+    else {
+      payload = {
+        Nitrogen: Number(n),
+        Phosphorus: Number(p),
+        Potassium: Number(k),
+        Ph: Number(ph)
+      };
+    }
+
+    const res = await fetch("http://127.0.0.1:5000/predict", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    console.log("API RESPONSE:", data);
+
+    // ✅ Save response to state
+    setRecommendations(data.recommendations);
+    setWeather({
+    temp: data.temperature,
+    humidity: data.humidity,
+    rainfall: data.rainfall,
+    city: data.city
+    });
+
+  } catch (err) {
+    console.error("Error:", err);
+  }
+  finally{
+    setIsAnalyzing(false);
+  }
   };
+  const [recommendations, setRecommendations] = useState([]);
+  const [weather, setWeather] = useState(null);
   const [activePage, setActivePage] = useState("dashboard");
   
   // --- 1. FIELDS STATE ---
@@ -276,7 +305,7 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
               type="number" 
               value={inputLat} 
               onChange={(e) => setInputLat(e.target.value)} 
-              placeholder="27.80"
+              placeholder="Latitude"
             />
           </div>
           <div className="input-group">
@@ -285,7 +314,7 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
               type="number" 
               value={inputLng} 
               onChange={(e) => setInputLng(e.target.value)} 
-              placeholder="78.65"
+              placeholder="Longitude"
             />
           </div>
         </div>
@@ -293,7 +322,7 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
         {/* ✨ NEW BIG GENERATE BUTTON ✨ */}
         <button 
           className="generate-btn" 
-          onClick={handleAnalyzeLocation}
+          onClick={handleGenerate}
           disabled={isAnalyzing}
         >
           {isAnalyzing ? (
@@ -329,14 +358,22 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
         ) : (
           <>
             <div className="crop-list">
-              {currentRecommendations.map((crop, index) => (
+              {recommendations.map((item, index) => (
                 <div key={index} className="crop-card">
-                  <span className="crop-emoji">{crop.icon}</span>
-                  <strong>{crop.name}</strong>
-                  <p>{crop.match} match</p>
+                  <span className="crop-emoji">🌱</span>
+                  <strong>{item.crop}</strong>
+                  <p>{item.confidence}% confidence</p>
                 </div>
               ))}
             </div>
+            {weather && (
+            <div className="weather-info">
+              <p>📍 City: {weather.city}</p>
+              <p>🌡 Temp: {weather.temp}°C</p>
+              <p>💧 Humidity: {weather.humidity}%</p>
+              <p>🌧 Rainfall: {weather.rainfall} mm</p>
+            </div>
+            )}
             <div className="why-crops">
               <h4>Why these crops?</h4>
               <ul>

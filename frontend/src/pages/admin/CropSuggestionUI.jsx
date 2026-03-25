@@ -8,7 +8,6 @@ function CropSuggestionUI() {
     Phosphorus: "",
     Potassium: "",
     Ph: "",
-    Rainfall: "",
     state: "",
     district: "",
     city: ""
@@ -71,11 +70,6 @@ function CropSuggestionUI() {
             </div>
 
             <div className="form-group">
-              <label>Rainfall (mm)</label>
-              <input type="number" name="Rainfall" onChange={handleChange} required />
-            </div>
-
-            <div className="form-group">
               <label>State</label>
               <input type="text" name="state" onChange={handleChange} required />
             </div>
@@ -110,7 +104,6 @@ function CropSuggestionUI() {
       <p><strong>P:</strong> {formData.Phosphorus}</p>
       <p><strong>K:</strong> {formData.Potassium}</p>
       <p><strong>pH:</strong> {formData.Ph}</p>
-      <p><strong>Rainfall:</strong> {formData.Rainfall} mm</p>
       <p><strong>State:</strong> {formData.state}</p>
       <p><strong>District:</strong> {formData.district}</p>
       <p><strong>City:</strong> {formData.city}</p>
@@ -121,6 +114,7 @@ function CropSuggestionUI() {
       <h5 className="crop-title">🌦 Live Weather</h5>
       <p><strong>Temperature:</strong> {result.temperature} °C</p>
       <p><strong>Humidity:</strong> {result.humidity} %</p>
+      <p><strong>Rainfall:</strong> {result.rainfall} mm</p>
     </div>
 
     {/* 🌾 Crops */}
