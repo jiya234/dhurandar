@@ -9,8 +9,7 @@ import L from 'leaflet';
 import { 
   Cloud, Sun, Wind, Eye, Gauge, Map, Settings, 
   LayoutDashboard, CloudRain, Wheat, Navigation, X, LogOut, 
-  Database, FileText, Download, // ✅ Database yahan add hona zaroori hai
-} from "lucide-react";
+  Database, FileText, Download} from "lucide-react";
 import "./Users.css";
 
 // --- Leaflet Icon Fix ---

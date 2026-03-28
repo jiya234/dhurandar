@@ -42,15 +42,19 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
-from django.conf import settings
-
-user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 class Researcher(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,  # ✅ settings se lena hai
+        on_delete=models.CASCADE
+    )
     name = models.CharField(max_length=100)
     url = models.TextField()
-    date = models.DateField()
+    date = models.DateField(auto_now_add=True)  # ✅ auto date
+    status = models.CharField(max_length=20, default='Pending')  # ✅ status add
 
-    def __str__(self):
+    class Meta:
+        db_table = 'users_researcher'
+
+    def __str__(self):   # ✅ double underscore
         return self.name
