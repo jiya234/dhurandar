@@ -10,7 +10,6 @@ import {
   Cloud, Sun, Wind, Eye, Gauge, Map, Settings, 
   LayoutDashboard, CloudRain, Wheat, Navigation, X, LogOut, 
   Database, FileText, Download, // ✅ Database yahan add hona zaroori hai
-  CropIcon
 } from "lucide-react";
 import "./Users.css";
 
