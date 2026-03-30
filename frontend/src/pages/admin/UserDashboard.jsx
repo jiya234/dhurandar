@@ -31,16 +31,6 @@ export default function UserDashboard() {
 const [user, setUser] = useState({ name: "", email: "", role: "" });
 
   useEffect(() => {
-  const email = localStorage.getItem("email");
-  const token = localStorage.getItem("token");
-fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
-    headers: { Authorization: `Token ${token}` }
-  })
-    .then(res => res.json())
-    .then(data => setUser({ name: data.full_name, email: data.email, role: data.role }))
-    .catch(() => setUser({ name: "User", email, role: "" }));
-}, []);
-  useEffect(() => {
   fetch("http://127.0.0.1:8000/api/researcher/1/")
     .then(res => res.json())
     .then(data => setResearchData(data))
@@ -108,12 +98,10 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
     setIsAnalyzing(false);
   }
   };
-  const handleSaveSettings = async () => {
+const handleSaveSettings = async () => {
   setIsSaving(true);
-
   try {
     const token = localStorage.getItem("token");
-
     const res = await fetch("http://127.0.0.1:8000/api/users/update_user/", {
       method: "PUT",
       headers: {
@@ -123,22 +111,20 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
       body: JSON.stringify({
         full_name: settings.name,
         email: settings.email,
-        phone: settings.phone,
-        region: settings.region
       })
     });
 
     if (res.ok) {
-      alert("✅ Saved successfully!");
+      alert("Saved successfully!");
+      // update sidebar name too
+      setUser(prev => ({ ...prev, name: settings.name, email: settings.email }));
     } else {
       alert("Error saving ❌");
     }
-
   } catch (err) {
     console.error(err);
     alert("Server error ❌");
   }
-
   setIsSaving(false);
 };
   const [recommendations, setRecommendations] = useState([]);
@@ -252,7 +238,8 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
   // --- 3. SOIL MAPPING STATE ---
   const [soilData, setSoilData] = useState([]);
   const [nutrient, setNutrient] = useState("N"); 
-
+const [settings, setSettings] = useState({ name: "", email: "" });
+const [isSaving, setIsSaving] = useState(false);
   // --- 4. DATA FETCHING ---
   useEffect(() => {
     fetch("/soil_data.json")
@@ -261,13 +248,34 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
       .catch(err => console.log("Soil Data Error:", err));
   }, []);
 
-  // --- 6. SETTINGS STATE (Editable) ---
-  const [settings, setSettings] = useState({
-    name: "Ramesh Singh", email: "ramesh.singh@example.com", phone: "+91 98765 43210",
-    region: "Kasganj, UP", lat: "27.80", lng: "78.65", units: "Metric", language: "English"
-  });
-  const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+  const token = localStorage.getItem("token");
 
+  fetch("http://127.0.0.1:8000/api/users/profile/", {
+    headers: {
+      Authorization: `Token ${token}`
+    }
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to fetch profile");
+      return res.json();
+    })
+    .then(data => {
+      setUser({
+        name: data.full_name,
+        email: data.email,
+        role: data.role
+      });
+
+      setSettings({
+        name: data.full_name,
+        email: data.email
+      });
+    })
+    .catch(err => {
+      console.error("Profile fetch error:", err);
+    });
+}, []);
 
   // --- HELPERS FUNCTIONS ---
   
@@ -309,7 +317,14 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
     setShowModal(false);
     setNewField({ name: "", crop: "", area: "", lat: "", lng: "" });
   };
-
+const getInitials = (name) => {
+  if (!name) return "U";
+  return name
+    .split(" ")
+    .map(word => word[0])
+    .join("")
+    .toUpperCase();
+};
   return (
     <div className="app-container">
       {/* SIDEBAR */}
@@ -320,10 +335,19 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
         </div>
 
         <div className="profile-section">
-          <div className="profile-avatar">RS</div>
-          <div className="profile-details"><h4>Ramesh Singh</h4><p>Kasganj, UP</p></div>
-          <div className="status-badge">● Active field</div>
-        </div>
+  
+  <div className="profile-avatar">
+    {getInitials(user.name)}
+  </div>
+
+  <div className="profile-details">
+    <h4>{user.name || "User"}</h4>
+    <p>{user.region || "No region set"}</p>
+  </div>
+
+  <div className="status-badge">● Active field</div>
+
+</div>
 
         <nav className="nav-menu">
           <div className={`nav-item ${activePage === "dashboard" ? "active" : ""}`} onClick={() => setActivePage("dashboard")}><LayoutDashboard size={18} /> <span>Dashboard</span></div>
@@ -957,24 +981,48 @@ fetch(`http://127.0.0.1:8000/api/users/get_user_by_email/${email}/`, {
 
         {/* 5. SETTINGS PAGE */}
         {activePage === "settings" && (
-          <div className="content-fade-in" key="settings">
-            <header className="page-header"><h1>Settings</h1><p className="subtitle-small">Manage account preferences</p></header>
-            <div className="settings-container-layout">
-              <div className="settings-card">
-                <div className="card-title-row"><div className="icon-box-light"><span className="user-icon">👤</span></div><div><h3>Profile</h3><p>Personal details</p></div></div>
-                <div className="settings-form-grid">
-                  <div className="form-group"><label>Full Name</label><input type="text" value={settings.name} onChange={(e) => setSettings({...settings, name: e.target.value})} /></div>
-                  <div className="form-group"><label>Email</label><input type="email" value={settings.email} onChange={(e) => setSettings({...settings, email: e.target.value})} /></div>
-                  <div className="form-group"><label>Phone</label><input type="text" value={settings.phone} onChange={(e) => setSettings({...settings, phone: e.target.value})} /></div>
-                  <div className="form-group"><label>Region</label><input type="text" value={settings.region} onChange={(e) => setSettings({...settings, region: e.target.value})} /></div>
-                </div>
-              </div>
-              <div className="settings-actions">
-                <button className="save-settings-btn" onClick={handleSaveSettings} disabled={isSaving}>{isSaving ? "Saving..." : "Save Changes"}</button>
-              </div>
-            </div>
+  <div className="content-fade-in" key="settings">
+    <header className="page-header">
+      <h1>Settings</h1>
+      <p className="subtitle-small">Manage account preferences</p>
+    </header>
+    <div className="settings-container-layout">
+      <div className="settings-card">
+        <div className="card-title-row">
+          <div className="icon-box-light"><span className="user-icon">👤</span></div>
+          <div><h3>Profile</h3><p>Personal details</p></div>
+        </div>
+        <div className="settings-form-grid">
+          <div className="form-group">
+            <label>Full Name</label>
+            <input
+              type="text"
+              value={settings.name}
+              onChange={(e) => setSettings({ ...settings, name: e.target.value })}
+            />
           </div>
-        )}
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              value={settings.email}
+              onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="settings-actions">
+        <button
+          className="save-settings-btn"
+          onClick={handleSaveSettings}
+          disabled={isSaving}
+        >
+          {isSaving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       </main>
     </div>
