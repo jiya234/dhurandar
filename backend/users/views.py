@@ -42,7 +42,8 @@ class LoginView(APIView):
             "token": token.key,
             "role": user.role,
             "email": user.email,
-            "full_name": user.full_name
+            "full_name": user.full_name,
+            "id": user.id
         }, status=status.HTTP_200_OK)
 
 
@@ -90,3 +91,54 @@ def get_user_by_email(request, email):
         })
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def add_researcher(request):
+    from .models import Researcher
+    from django.contrib.auth import get_user_model
+    name = request.data.get('name')
+    url = request.data.get('url')
+    user_id = request.data.get('user_id')
+    if not all([name, url, user_id]):
+        return Response({"error": "name, url, and user_id are required"}, status=400)
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
+    r = Researcher.objects.create(name=name, url=url, user=user)
+    return Response({"id": r.id, "name": r.name, "url": r.url}, status=201)
+
+
+@api_view(['PUT'])
+def update_profile(request):
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user_id = request.data.get('id')
+    try:
+        user = User.objects.get(id=user_id)
+        if request.data.get('full_name'):
+            user.full_name = request.data.get('full_name')
+        new_pass = request.data.get('new_password')
+        current_pass = request.data.get('current_password')
+        if new_pass and current_pass:
+            if not user.check_password(current_pass):
+                return Response({"error": "Current password is wrong"}, status=400)
+            user.set_password(new_pass)
+        user.save()
+        return Response({"message": "Profile updated successfully"})
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
+
+
+@api_view(['DELETE'])
+def delete_account(request, user_id):
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id)
+        user.delete()
+        return Response({"message": "Account deleted"}, status=200)
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
