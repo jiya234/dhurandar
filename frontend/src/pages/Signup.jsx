@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Signup.css";
 
@@ -9,7 +9,6 @@ const Signup = () => {
     password: "",
     role: "User",
   });
-
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [verified, setVerified] = useState(false);
@@ -42,30 +41,43 @@ const Signup = () => {
 
   // 🔐 SEND OTP
   const sendOtp = async () => {
-    if (!form.email) {
-      alert("Enter email first");
-      return;
-    }
+  if (!form.email) {
+    alert("Enter email first");
+    return;
+  }
 
+  try {
+    const res = await fetch(
+      "http://127.0.0.1:8000/api/accounts/send-otp/",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email }),
+      }
+    );
+
+    const text = await res.text();   // ✅ pehle text
+    console.log("RAW:", text);
+
+    let data;
     try {
-      const res = await fetch(
-        "http://127.0.0.1:8000/api/accounts/send-otp/",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: form.email }),
-        }
-      );
-
-      const data = await res.json();
-      alert(data.message || "OTP sent");
-      setOtpSent(true);
-    } catch (err) {
-      console.error(err);
-      alert("Error sending OTP");
+      data = JSON.parse(text);       // ✅ safe parse
+    } catch {
+      throw new Error("Server returned HTML instead of JSON");
     }
-  };
 
+    if (res.ok) {
+      alert(data.message || "OTP sent ✅");
+      setOtpSent(true);
+    } else {
+      alert(data.error || "Failed ❌");
+    }
+
+  } catch (err) {
+    console.error("OTP ERROR:", err);
+    alert("Server error ❌ (check backend)");
+  }
+};
   // ✅ VERIFY OTP
   const verifyOtp = async () => {
     try {

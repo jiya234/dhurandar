@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { CheckCircle, Clock, XCircle } from "lucide-react";
 import "./ResearcherDashboard.css";
 
@@ -7,29 +8,39 @@ const ResearcherDashboard = () => {
     { id: 1, name: "Soil Data 2024", date: "12 Jan 2026", url: "https://example.com/soil", status: "Approved" },
     { id: 2, name: "Crop Yield", date: "14 Jan 2026", url: "https://github.com/crop", status: "Pending" }
   ]);
+  const navigate = useNavigate();
 
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    navigate("/login");
+  }
+}, [navigate]);   // ✅ add this
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
-  const handleLogout = async () => {
+
+const handleLogout = async () => {
   const confirmLogout = window.confirm("Are you sure you want to Logout?");
   if (!confirmLogout) return;
 
   try {
-    const res = await fetch("http://127.0.0.1:8000/api/users/logout/", {
+    const refresh = localStorage.getItem("refresh");
+
+    await fetch("http://127.0.0.1:8000/api/users/logout/", {
       method: "POST",
-      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refresh }),
     });
 
-    const data = await res.json();
-    console.log(data);
+    // 🔥 IMPORTANT
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh");
 
-    if (res.ok) {
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.href = "/login";
-    } else {
-      console.error("Logout failed");
-    }
+    navigate("/login");
+
   } catch (err) {
     console.error("Error:", err);
   }
