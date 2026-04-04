@@ -31,9 +31,6 @@ const Signup = () => {
       newErrors.email = "Enter a valid email";
 
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-    if (!passwordRegex.test(form.password))
-      newErrors.password =
-        "Min 8 chars, must include letters & numbers";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

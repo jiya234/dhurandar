@@ -13,6 +13,11 @@
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+.profile-details {
+  font-size: 16px;
+  margin: 0;
+  color: #333333 !important;
+}
 
 
 .logo-section {

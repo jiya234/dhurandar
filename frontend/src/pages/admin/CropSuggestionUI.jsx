@@ -43,7 +43,7 @@ function CropSuggestionUI() {
 
       {/* 🌿 FORM CARD */}
       <div className="crop-card-ui">
-        <h5 className="crop-title">🌱 Enter Soil & Location Details</h5>
+       <h5 className="crop-title">🌱 Soil & Location Details</h5>
 
         <form onSubmit={handleSubmit}>
 
@@ -98,7 +98,7 @@ function CropSuggestionUI() {
 
     {/* 📋 INPUT SUMMARY */}
     <div className="crop-card-ui">
-      <h5 className="crop-title">📋 Input Summary</h5>
+    <h5 className="crop-title">📊 Input Summary</h5>
 
       <p><strong>N:</strong> {formData.Nitrogen}</p>
       <p><strong>P:</strong> {formData.Phosphorus}</p>
@@ -111,7 +111,7 @@ function CropSuggestionUI() {
 
     {/* 🌦 Weather */}
     <div className="crop-card-ui">
-      <h5 className="crop-title">🌦 Live Weather</h5>
+      <h5 className="crop-title">🌦 Weather Insights</h5>
       <p><strong>Temperature:</strong> {result.temperature} °C</p>
       <p><strong>Humidity:</strong> {result.humidity} %</p>
       <p><strong>Rainfall:</strong> {result.rainfall} mm</p>
@@ -119,7 +119,7 @@ function CropSuggestionUI() {
 
     {/* 🌾 Crops */}
     <div className="crop-card-ui">
-      <h5 className="crop-title">🌾 Recommended Crops</h5>
+      <h5 className="crop-title">🌾 Crop Recommendations</h5>
 
       {result.recommendations.map((rec, index) => (
         <div key={index} style={{ marginBottom: "15px" }}>
