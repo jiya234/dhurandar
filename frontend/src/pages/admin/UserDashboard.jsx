@@ -742,8 +742,7 @@ const getInitials = (name) => {
             <Weather />
           </div>
         )}
-        {/* 3. FIELD MAP PAGE */}
-        {activePage === "fieldMap" && (
+         {activePage === "fieldMap" && (
           <div className="content-fade-in" key="fieldMap">
             <header className="page-header-flex">
               <div>

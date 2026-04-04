@@ -109,11 +109,12 @@ def users_list(request):
 # =========================
 # 📊 RESEARCHER DATA
 # =========================
+# views.py
+
 @api_view(['GET', 'DELETE'])
 def researcher_list(request, pk=None):
     from .models import Researcher
 
-    # 🔴 DELETE
     if request.method == 'DELETE' and pk:
         try:
             r = Researcher.objects.get(id=pk)
@@ -122,12 +123,10 @@ def researcher_list(request, pk=None):
         except Researcher.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
 
-    # 🟢 GET (THIS WAS MISSING PROPERLY)
     if request.method == 'GET':
         data = Researcher.objects.all().select_related('user').values(
             'id', 'name', 'url', 'date', 'user_id', 'user__full_name'
         )
-
         return Response([{
             'id': d['id'],
             'name': d['name'],
@@ -136,31 +135,37 @@ def researcher_list(request, pk=None):
             'user_id': d['user_id'],
             'researcher_name': d['user__full_name'] or f"User {d['user_id']}"
         } for d in data])
-# =========================
-# ➕ ADD RESEARCHER DATASET
-# =========================
+
+
+# ✅ Fix: get user from token, not from body
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def researcher_add(request):
     from .models import Researcher
     from django.utils import timezone
 
     name = request.data.get('name')
     url = request.data.get('url')
-    user_id = request.data.get('user_id')
 
-    if not name or not url or not user_id:
-        return Response({"error": "name, url, user_id required"}, status=400)
+    if not name or not url:
+        return Response({"error": "name and url are required"}, status=400)
 
     r = Researcher.objects.create(
         name=name,
         url=url,
-        user_id=user_id,
+        user=request.user,          # ✅ from token, no need to send user_id
         date=timezone.now().date()
     )
 
-    return Response({"message": "Dataset added", "id": r.id}, status=201)
-
-
+    return Response({
+        "message": "Dataset added",
+        "id": r.id,
+        "name": r.name,
+        "url": r.url,
+        "date": r.date,
+        "researcher_name": request.user.full_name
+    }, status=201)
 # =========================
 # 🔍 GET USER BY EMAIL
 # =========================
