@@ -35,7 +35,14 @@ export default function UserDashboard() {
     .then(data => setResearchData(data))
     .catch(err => console.error("Research fetch error:", err));
 }, []);
+useEffect(() => {
+  const token = localStorage.getItem("token");
 
+  if (!token) {
+    // ❌ agar token nahi hai → bahar fek do
+    window.location.href = "/login";
+  }
+}, []);
   // --- 🧠 AI LOGIC TO UPDATE CROPS ---
   const handleGenerate = async () => {
   try {
@@ -318,6 +325,34 @@ const [isSaving, setIsSaving] = useState(false);
     setShowModal(false);
     setNewField({ name: "", crop: "", area: "", lat: "", lng: "" });
   };
+  const handleLogout = async () => {
+  const confirmLogout = window.confirm("Are you sure you want to logout?");
+  if (!confirmLogout) return;
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/api/users/logout/", {
+      method: "POST",
+      credentials: "include", // important for session
+    });
+
+    const data = await res.json();
+    console.log("Logout response:", data);
+
+    if (res.ok) {
+      // 🔥 token bhi delete karo (important)
+      localStorage.removeItem("token");
+      sessionStorage.clear();
+
+      // 🔥 redirect
+      window.location.href = "/login";
+    } else {
+      alert("Logout failed ❌");
+    }
+  } catch (err) {
+    console.error("Logout error:", err);
+    alert("Server error ❌");
+  }
+};
 const getInitials = (name) => {
   if (!name) return "U";
   return name
@@ -346,6 +381,8 @@ const getInitials = (name) => {
     <p>{user.region || "No region set"}</p>
   </div>
 
+  <div className="status-badge">● Active field</div>
+
 </div>
 
         <nav className="nav-menu">
@@ -362,7 +399,7 @@ const getInitials = (name) => {
           <div className={`nav-item ${activePage === "settings" ? "active" : ""}`} onClick={() => setActivePage("settings")}><Settings size={18} /> <span>Settings</span></div>
         </nav>
 
-        <div className="logout-section" onClick={() => alert("Logging out...")}>
+        <div className="logout-section" onClick={handleLogout}>
           <LogOut size={18} />
           <span>Logout</span>
         </div>

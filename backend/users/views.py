@@ -195,3 +195,23 @@ def update_user(request):
         "full_name": user.full_name,
         "email": user.email,
     })
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.contrib.auth import logout
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+
+@api_view(['POST'])
+def logout_user(request):
+    try:
+        refresh_token = request.data.get("refresh")
+
+        if refresh_token:
+            token = RefreshToken(refresh_token)
+            token.blacklist()   # 🔥 JWT destroy
+
+        return Response({"message": "Logout successful"})
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)

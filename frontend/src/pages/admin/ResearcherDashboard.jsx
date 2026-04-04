@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import CropSuggestionUI from "./CropSuggestionUI";
 import SoilHealthUI from "./SoilHealthUI";
 import Weather from "./Weather";
-import { MapContainer, TileLayer, Marker, Popup, Rectangle } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, Marker, Popup, Rectangle } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 import { useMapEvents } from "react-leaflet";
-import L from 'leaflet';
+import L from "leaflet";
 import {
   Cloud, Map, Settings,
   LayoutDashboard, CloudRain, Wheat, Navigation, X, LogOut,
@@ -15,35 +16,111 @@ import "./ResearcherDashboard.css";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
 export default function ResearcherDashboard() {
+  const navigate = useNavigate();
 
   const [inputLat, setInputLat] = useState("27.80");
   const [inputLng, setInputLng] = useState("78.65");
   const [researchData, setResearchData] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  // ✅ id added to user state
   const [user, setUser] = useState({ name: "", email: "", role: "", id: null });
-
-  // Upload form state
   const [newDatasetName, setNewDatasetName] = useState("");
   const [newDatasetUrl, setNewDatasetUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [recommendations, setRecommendations] = useState([]);
+  const [weather, setWeather] = useState(null);
+  const [dashboardWeather, setDashboardWeather] = useState(null);
+  const [activePage, setActivePage] = useState("dashboard");
+  const [place, setPlace] = useState("");
+  const [selectedSoil, setSelectedSoil] = useState(null);
+  const [fields, setFields] = useState([
+    { id: 1, name: "North Field", crop: "Wheat", area: "4.2", lat: 27.82, lng: 78.66, color: "green" },
+    { id: 2, name: "South Field", crop: "Mustard", area: "3.8", lat: 27.79, lng: 78.64, color: "yellow" },
+  ]);
+  const [showModal, setShowModal] = useState(false);
+  const [newField, setNewField] = useState({ name: "", crop: "", area: "", lat: "", lng: "" });
+  const [soilData, setSoilData] = useState([]);
+  const [nutrient, setNutrient] = useState("N");
+  const [settings, setSettings] = useState({ name: "", email: "" });
+  const [isSaving, setIsSaving] = useState(false);
 
-  // ✅ Fetch researcher data dynamically based on user.id
- useEffect(() => {
-  fetch("http://127.0.0.1:8000/api/users/researchers/")  // ✅ no user id needed
-    .then(res => res.json())
-    .then(data => setResearchData(data))
-    .catch(err => console.error("Research fetch error:", err));
-}, []);  // ✅ no dependency needed
+  // Auth guard
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) navigate("/login");
+  }, [navigate]);
 
-  // ✅ handleShareDataset uses dynamic user.id
+  // Fetch all researcher datasets
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/users/researchers/")
+      .then((res) => res.json())
+      .then((data) => setResearchData(data))
+      .catch((err) => console.error("Research fetch error:", err));
+  }, []);
+
+  // Fetch soil data
+  useEffect(() => {
+    fetch("/soil_data.json")
+      .then((res) => res.json())
+      .then((data) => setSoilData(data.Sheet1 || []))
+      .catch(() => {});
+  }, []);
+
+  // Fetch user profile
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch("http://127.0.0.1:8000/api/users/profile/", {
+      headers: { Authorization: `Token ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed");
+        return res.json();
+      })
+      .then((data) => {
+        setUser({ name: data.full_name, email: data.email, role: data.role, id: data.user_id });
+        setSettings({ name: data.full_name, email: data.email });
+      })
+      .catch((err) => console.error("Profile fetch error:", err));
+  }, []);
+
+  // Auto-fetch weather when coordinates change
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!inputLat || !inputLng) return;
+      fetch(`http://127.0.0.1:5000/weather?lat=${inputLat}&lon=${inputLng}`)
+        .then((res) => res.json())
+        .then((data) =>
+          setDashboardWeather({ temp: data.temperature, humidity: data.humidity, rainfall: data.rainfall })
+        )
+        .catch((err) => console.error("Weather fetch error:", err));
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [inputLat, inputLng]);
+
+  const handleLogout = async () => {
+    const confirmLogout = window.confirm("Are you sure you want to logout?");
+    if (!confirmLogout) return;
+    try {
+      const refresh = localStorage.getItem("refresh");
+      await fetch("http://127.0.0.1:8000/api/users/logout/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
+      });
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refresh");
+      navigate("/login");
+    }
+  };
+
   const handleShareDataset = async (e) => {
     e.preventDefault();
     if (!newDatasetName || !newDatasetUrl) return alert("Please fill all fields!");
@@ -54,26 +131,30 @@ export default function ResearcherDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newDatasetName, url: newDatasetUrl, user_id: user.id }),
       });
-      // refresh table
-      const res = await fetch(`http://127.0.0.1:8000/api/users/researchers/${user.id}/`);
+      const res = await fetch("http://127.0.0.1:8000/api/users/researchers/");
       const data = await res.json();
       setResearchData(data);
       setNewDatasetName("");
       setNewDatasetUrl("");
     } catch (err) {
       console.error(err);
-      alert("Error saving dataset ❌");
+      alert("Error saving dataset");
     }
     setIsUploading(false);
   };
 
   const handleGenerate = async () => {
+    if (isNaN(inputLat) || isNaN(inputLng)) {
+      alert("Please enter valid numeric latitude and longitude");
+      return;
+    }
     try {
       setIsAnalyzing(true);
-      if (isNaN(inputLat) || isNaN(inputLng)) { alert("Please enter valid numeric latitude and longitude"); return; }
       const payload = { latitude: parseFloat(inputLat), longitude: parseFloat(inputLng) };
       const res = await fetch("http://127.0.0.1:5000/predict", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.error) { alert(data.error); return; }
@@ -93,32 +174,19 @@ export default function ResearcherDashboard() {
       const res = await fetch("http://127.0.0.1:8000/api/users/update_user/", {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Token ${token}` },
-        body: JSON.stringify({ full_name: settings.name, email: settings.email })
+        body: JSON.stringify({ full_name: settings.name, email: settings.email }),
       });
-      if (res.ok) { alert("Saved successfully!"); setUser(prev => ({ ...prev, name: settings.name, email: settings.email })); }
-      else alert("Error saving ❌");
-    } catch (err) { console.error(err); alert("Server error ❌"); }
+      if (res.ok) {
+        alert("Saved successfully!");
+        setUser((prev) => ({ ...prev, name: settings.name, email: settings.email }));
+      } else {
+        alert("Error saving");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Server error");
+    }
     setIsSaving(false);
-  };
-
-  const [recommendations, setRecommendations] = useState([]);
-  const [weather, setWeather] = useState(null);
-  const [dashboardWeather, setDashboardWeather] = useState(null);
-  const [activePage, setActivePage] = useState("dashboard");
-  const [place, setPlace] = useState("");
-  const [selectedSoil, setSelectedSoil] = useState(null);
-
-  function MapClickHandler() {
-    useMapEvents({ click(e) { setInputLat(e.latlng.lat.toFixed(4)); setInputLng(e.latlng.lng.toFixed(4)); } });
-    return null;
-  }
-
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) { alert("Geolocation not supported"); return; }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { setInputLat(pos.coords.latitude.toFixed(4)); setInputLng(pos.coords.longitude.toFixed(4)); },
-      () => alert("Location access denied ❌")
-    );
   };
 
   const handleSearchLocation = async () => {
@@ -127,47 +195,41 @@ export default function ResearcherDashboard() {
       const res = await fetch(`http://127.0.0.1:5000/geocode?place=${place}`);
       const data = await res.json();
       if (data.error) { alert(data.error); return; }
-      setInputLat(data.lat); setInputLng(data.lon);
-    } catch (err) { console.error(err); }
+      setInputLat(data.lat);
+      setInputLng(data.lon);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (!inputLat || !inputLng) return;
-      fetch(`http://127.0.0.1:5000/weather?lat=${inputLat}&lon=${inputLng}`)
-        .then(res => res.json())
-        .then(data => setDashboardWeather({ temp: data.temperature, humidity: data.humidity, rainfall: data.rainfall }))
-        .catch(err => console.error("Weather fetch error:", err));
-    }, 800);
-    return () => clearTimeout(timeout);
-  }, [inputLat, inputLng]);
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) { alert("Geolocation not supported"); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setInputLat(pos.coords.latitude.toFixed(4));
+        setInputLng(pos.coords.longitude.toFixed(4));
+      },
+      () => alert("Location access denied")
+    );
+  };
 
-  const [fields, setFields] = useState([
-    { id: 1, name: "North Field", crop: "Wheat", area: "4.2", lat: 27.82, lng: 78.66, color: "green" },
-    { id: 2, name: "South Field", crop: "Mustard", area: "3.8", lat: 27.79, lng: 78.64, color: "yellow" }
-  ]);
-  const [showModal, setShowModal] = useState(false);
-  const [newField, setNewField] = useState({ name: "", crop: "", area: "", lat: "", lng: "" });
-  const [soilData, setSoilData] = useState([]);
-  const [nutrient, setNutrient] = useState("N");
-  const [settings, setSettings] = useState({ name: "", email: "" });
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    fetch("/soil_data.json").then(res => res.json()).then(data => setSoilData(data.Sheet1 || [])).catch(() => {});
-  }, []);
-
-  // ✅ Profile fetch — saves user_id too
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    fetch("http://127.0.0.1:8000/api/users/profile/", { headers: { Authorization: `Token ${token}` } })
-      .then(res => { if (!res.ok) throw new Error("Failed"); return res.json(); })
-      .then(data => {
-        setUser({ name: data.full_name, email: data.email, role: data.role, id: data.user_id }); // ✅
-        setSettings({ name: data.full_name, email: data.email });
-      })
-      .catch(err => console.error("Profile fetch error:", err));
-  }, []);
+  const handleAddField = () => {
+    if (!newField.name || !newField.lat) return alert("Please fill details");
+    setFields([
+      ...fields,
+      {
+        id: Date.now(),
+        name: newField.name,
+        crop: newField.crop || "Fallow",
+        area: newField.area || "0",
+        lat: parseFloat(newField.lat),
+        lng: parseFloat(newField.lng),
+        color: "brown",
+      },
+    ]);
+    setShowModal(false);
+    setNewField({ name: "", crop: "", area: "", lat: "", lng: "" });
+  };
 
   const getColor = (value, type) => {
     if (type === "N") { if (value < 150) return "#ef4444"; if (value < 250) return "#facc15"; return "#22c55e"; }
@@ -177,17 +239,20 @@ export default function ResearcherDashboard() {
     return "#cccccc";
   };
 
-  const handleAddField = () => {
-    if (!newField.name || !newField.lat) return alert("Please fill details");
-    setFields([...fields, { id: Date.now(), name: newField.name, crop: newField.crop || "Fallow", area: newField.area || "0", lat: parseFloat(newField.lat), lng: parseFloat(newField.lng), color: "brown" }]);
-    setShowModal(false);
-    setNewField({ name: "", crop: "", area: "", lat: "", lng: "" });
-  };
-
   const getInitials = (name) => {
     if (!name) return "U";
-    return name.split(" ").map(word => word[0]).join("").toUpperCase();
+    return name.split(" ").map((word) => word[0]).join("").toUpperCase();
   };
+
+  function MapClickHandler() {
+    useMapEvents({
+      click(e) {
+        setInputLat(e.latlng.lat.toFixed(4));
+        setInputLng(e.latlng.lng.toFixed(4));
+      },
+    });
+    return null;
+  }
 
   return (
     <div className="app-container">
@@ -207,16 +272,16 @@ export default function ResearcherDashboard() {
         </div>
 
         <nav className="nav-menu">
-          <div className={`nav-item ${activePage === "dashboard" ? "active" : ""}`} onClick={() => setActivePage("dashboard")}><LayoutDashboard size={18} /> <span>Dashboard</span></div>
-          <div className={`nav-item ${activePage === "weather" ? "active" : ""}`} onClick={() => setActivePage("weather")}><Cloud size={18} /> <span>Weather</span></div>
-          <div className={`nav-item ${activePage === "fieldMap" ? "active" : ""}`} onClick={() => setActivePage("fieldMap")}><Map size={18} /> <span>Field Map</span></div>
-          <div className={`nav-item ${activePage === "cropSuggestions" ? "active" : ""}`} onClick={() => setActivePage("cropSuggestions")}><Wheat size={18} /> <span>Crop Suggestions</span></div>
+          <div className={`nav-item ${activePage === "dashboard" ? "active" : ""}`} onClick={() => setActivePage("dashboard")}><LayoutDashboard size={18} /><span>Dashboard</span></div>
+          <div className={`nav-item ${activePage === "weather" ? "active" : ""}`} onClick={() => setActivePage("weather")}><Cloud size={18} /><span>Weather</span></div>
+          <div className={`nav-item ${activePage === "fieldMap" ? "active" : ""}`} onClick={() => setActivePage("fieldMap")}><Map size={18} /><span>Field Map</span></div>
+          <div className={`nav-item ${activePage === "cropSuggestions" ? "active" : ""}`} onClick={() => setActivePage("cropSuggestions")}><Wheat size={18} /><span>Crop Suggestions</span></div>
           <div className={`nav-item ${activePage === "soilHealth" ? "active" : ""}`} onClick={() => setActivePage("soilHealth")}><Wheat size={18} /><span>Soil Health</span></div>
-          <div className={`nav-item ${activePage === "researcherData" ? "active" : ""}`} onClick={() => setActivePage("researcherData")}><Database size={18} /> <span>Researcher Data</span></div>
-          <div className={`nav-item ${activePage === "settings" ? "active" : ""}`} onClick={() => setActivePage("settings")}><Settings size={18} /> <span>Settings</span></div>
+          <div className={`nav-item ${activePage === "researcherData" ? "active" : ""}`} onClick={() => setActivePage("researcherData")}><Database size={18} /><span>Researcher Data</span></div>
+          <div className={`nav-item ${activePage === "settings" ? "active" : ""}`} onClick={() => setActivePage("settings")}><Settings size={18} /><span>Settings</span></div>
         </nav>
 
-        <div className="logout-section" onClick={() => alert("Logging out...")}>
+        <div className="logout-section" onClick={handleLogout}>
           <LogOut size={18} /><span>Logout</span>
         </div>
       </aside>
@@ -258,7 +323,7 @@ export default function ResearcherDashboard() {
                   <h3>📍 Field Location</h3>
                   <Navigation size={16} style={{ transform: "rotate(45deg)" }} />
                 </div>
-                <div className="coord-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div className="coord-inputs" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
                   <div className="input-group"><label>LATITUDE</label><input type="number" value={inputLat} onChange={(e) => setInputLat(e.target.value)} placeholder="Latitude" /></div>
                   <div className="input-group"><label>LONGITUDE</label><input type="number" value={inputLng} onChange={(e) => setInputLng(e.target.value)} placeholder="Longitude" /></div>
                 </div>
@@ -268,7 +333,7 @@ export default function ResearcherDashboard() {
                 <div className="map-view" style={{ height: "220px", borderRadius: "15px", overflow: "hidden", marginTop: "20px", position: "relative" }}>
                   <div onClick={() => setActivePage("fieldMap")} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 10, cursor: "pointer", background: "transparent" }}></div>
                   <MapContainer center={[parseFloat(inputLat) || 27.80, parseFloat(inputLng) || 78.65]} zoom={13} scrollWheelZoom={false} zoomControl={false} style={{ height: "100%", width: "100%" }}>
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
                     <Marker position={[parseFloat(inputLat) || 27.80, parseFloat(inputLng) || 78.65]}><Popup>Selected Location</Popup></Marker>
                   </MapContainer>
                 </div>
@@ -289,8 +354,10 @@ export default function ResearcherDashboard() {
                     </div>
                     {weather && (
                       <div className="weather-info">
-                        <p>📍 City: {weather.city}</p><p>🌡 Temp: {weather.temp}°C</p>
-                        <p>💧 Humidity: {weather.humidity}%</p><p>🌧 Rainfall: {weather.rainfall} mm</p>
+                        <p>📍 City: {weather.city}</p>
+                        <p>🌡 Temp: {weather.temp}°C</p>
+                        <p>💧 Humidity: {weather.humidity}%</p>
+                        <p>🌧 Rainfall: {weather.rainfall} mm</p>
                       </div>
                     )}
                     <div className="why-crops">
@@ -307,106 +374,77 @@ export default function ResearcherDashboard() {
           </div>
         )}
 
-       {/* RESEARCHER DATA PAGE */}
-{activePage === "researcherData" && (
-  <div className="content-fade-in" key="researcherData">
-    <header className="page-header">
-      <h1>Researcher Datasets</h1>
-      <p className="subtitle-small">Share your findings and manage your contributions</p>
-    </header>
-
-    <div className="settings-container-layout">
-      
-      {/* 📤 UPLOAD FORM - Added this back */}
-      <div className="settings-card" style={{ marginBottom: "24px" }}>
-        <div className="card-title-row">
-          <div className="icon-box-light"><span className="pref-icon">📤</span></div>
-          <div><h3>Share New Dataset</h3><p>Link your research files (Google Drive, GitHub, etc.)</p></div>
-        </div>
-        
-        <form onSubmit={handleShareDataset} style={{ padding: "20px" }}>
-          <div className="settings-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-            <div className="form-group">
-              <label>Dataset Title</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Soil Nutrient Analysis - North Region"
-                value={newDatasetName}
-                onChange={(e) => setNewDatasetName(e.target.value)}
-                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #eee" }}
-              />
-            </div>
-            <div className="form-group">
-              <label>Source URL (Link)</label>
-              <input 
-                type="url" 
-                placeholder="https://drive.google.com/..."
-                value={newDatasetUrl}
-                onChange={(e) => setNewDatasetUrl(e.target.value)}
-                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #eee" }}
-              />
+        {/* RESEARCHER DATA */}
+        {activePage === "researcherData" && (
+          <div className="content-fade-in" key="researcherData">
+            <header className="page-header">
+              <h1>Researcher Datasets</h1>
+              <p className="subtitle-small">Share your findings and manage your contributions</p>
+            </header>
+            <div className="settings-container-layout">
+              <div className="settings-card" style={{ marginBottom: "24px" }}>
+                <div className="card-title-row">
+                  <div className="icon-box-light"><span className="pref-icon">📤</span></div>
+                  <div><h3>Share New Dataset</h3><p>Link your research files (Google Drive, GitHub, etc.)</p></div>
+                </div>
+                <form onSubmit={handleShareDataset} style={{ padding: "20px" }}>
+                  <div className="settings-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                    <div className="form-group">
+                      <label>Dataset Title</label>
+                      <input type="text" placeholder="e.g. Soil Nutrient Analysis - North Region" value={newDatasetName} onChange={(e) => setNewDatasetName(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #eee" }} />
+                    </div>
+                    <div className="form-group">
+                      <label>Source URL (Link)</label>
+                      <input type="url" placeholder="https://drive.google.com/..." value={newDatasetUrl} onChange={(e) => setNewDatasetUrl(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #eee" }} />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: "20px", textAlign: "right" }}>
+                    <button type="submit" disabled={isUploading} style={{ padding: "12px 30px", background: "#7da07d", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}>
+                      {isUploading ? "Uploading..." : "Share Dataset"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+              <div className="settings-card" style={{ padding: "0", overflow: "hidden" }}>
+                <div className="card-title-row" style={{ padding: "25px 30px", borderBottom: "1px solid #f0f0f0" }}>
+                  <div className="icon-box-light"><span className="pref-icon">📊</span></div>
+                  <div><h3>Your Shared Datasets</h3><p>Track all your previous uploads</p></div>
+                </div>
+                <div style={{ padding: "0 30px 30px" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid #f5f5f5", color: "#888", fontSize: "13px", textTransform: "uppercase" }}>
+                        <th style={{ padding: "15px 0" }}>Date</th>
+                        <th style={{ padding: "15px 0" }}>Dataset Title</th>
+                        <th style={{ padding: "15px 0", textAlign: "right" }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {researchData.length === 0 ? (
+                        <tr><td colSpan="3" style={{ textAlign: "center", padding: "40px", color: "#888" }}>No datasets shared yet. Start by uploading one above! 🚀</td></tr>
+                      ) : (
+                        researchData.map((item) => (
+                          <tr key={item.id} style={{ borderBottom: "1px solid #f9f9f9", fontSize: "14px", color: "#333" }}>
+                            <td style={{ padding: "15px 0", color: "#666" }}>{item.date || "Just now"}</td>
+                            <td style={{ padding: "15px 0" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <FileText size={16} color="#7da07d" />
+                                <strong>{item.name}</strong>
+                              </div>
+                            </td>
+                            <td style={{ padding: "15px 0", textAlign: "right" }}>
+                              <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: "#7da07d", fontWeight: "600", textDecoration: "none" }}>View Link</a>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
-          <div style={{ marginTop: "20px", textAlign: "right" }}>
-            <button 
-              type="submit" 
-              className="save-settings-btn" 
-              disabled={isUploading}
-              style={{ padding: "12px 30px", background: "#7da07d", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}
-            >
-              {isUploading ? "Uploading..." : "Share Dataset"}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* 📊 DATASET TABLE */}
-      <div className="settings-card" style={{ padding: "0", overflow: "hidden" }}>
-        <div className="card-title-row" style={{ padding: "25px 30px", borderBottom: "1px solid #f0f0f0" }}>
-          <div className="icon-box-light"><span className="pref-icon">📊</span></div>
-          <div><h3>Your Shared Datasets</h3><p>Track all your previous uploads</p></div>
-        </div>
-        <div className="dataset-table-container" style={{ padding: "0 30px 30px" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-            <thead>
-              <tr style={{ borderBottom: "2px solid #f5f5f5", color: "#888", fontSize: "13px", textTransform: "uppercase" }}>
-                <th style={{ padding: "15px 0" }}>Date</th>
-                <th style={{ padding: "15px 0" }}>Dataset Title</th>
-                <th style={{ padding: "15px 0", textAlign: "right" }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {researchData.length === 0 ? (
-                <tr>
-                  <td colSpan="3" style={{ textAlign: "center", padding: "40px", color: "#888" }}>
-                    No datasets shared yet. Start by uploading one above! 🚀
-                  </td>
-                </tr>
-              ) : (
-                researchData.map((item) => (
-                  <tr key={item.id} style={{ borderBottom: "1px solid #f9f9f9", fontSize: "14px", color: "#333" }}>
-                    <td style={{ padding: "15px 0", color: "#666" }}>{item.date || "Just now"}</td>
-                    <td style={{ padding: "15px 0" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <FileText size={16} color="#7da07d" />
-                        <strong>{item.name}</strong>
-                      </div>
-                    </td>
-                    <td style={{ padding: "15px 0", textAlign: "right" }}>
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: "#7da07d", fontWeight: "600", textDecoration: "none" }}>
-                        View Link
-                      </a>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+        )}
 
         {/* WEATHER */}
         {activePage === "weather" && <div className="content-fade-in" key="weather"><Weather /></div>}
@@ -461,12 +499,16 @@ export default function ResearcherDashboard() {
                     <div style={{ position: "absolute", top: "80px", right: "20px", background: "#fff", padding: "12px 16px", borderRadius: "10px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", zIndex: 1000, minWidth: "200px" }}>
                       <h4 style={{ margin: "0 0 5px" }}>🌱 Soil Insight</h4>
                       <p style={{ margin: "0" }}>{selectedSoil.type}: <strong>{selectedSoil.value}</strong></p>
-                      <p style={{ fontSize: "13px", marginTop: "5px" }}>👉 {selectedSoil.value < 150 ? "Low nutrient - Add fertilizer" : "Soil condition is good"}</p>
+                      <p style={{ fontSize: "13px", marginTop: "5px" }}>{selectedSoil.value < 150 ? "Low nutrient - Add fertilizer" : "Soil condition is good"}</p>
                     </div>
                   )}
                   <div className="map-legend-overlay">
                     <h4>{nutrient} Levels</h4>
-                    {nutrient === "pH" ? (<><div className="legend-item"><span style={{ background: "#60a5fa" }}></span> Acidic</div><div className="legend-item"><span style={{ background: "#22c55e" }}></span> Neutral</div><div className="legend-item"><span style={{ background: "#f97316" }}></span> Alkaline</div></>) : (<><div className="legend-item"><span style={{ background: "#ef4444" }}></span> Low</div><div className="legend-item"><span style={{ background: "#facc15" }}></span> Medium</div><div className="legend-item"><span style={{ background: "#22c55e" }}></span> High</div></>)}
+                    {nutrient === "pH" ? (
+                      <><div className="legend-item"><span style={{ background: "#60a5fa" }}></span> Acidic</div><div className="legend-item"><span style={{ background: "#22c55e" }}></span> Neutral</div><div className="legend-item"><span style={{ background: "#f97316" }}></span> Alkaline</div></>
+                    ) : (
+                      <><div className="legend-item"><span style={{ background: "#ef4444" }}></span> Low</div><div className="legend-item"><span style={{ background: "#facc15" }}></span> Medium</div><div className="legend-item"><span style={{ background: "#22c55e" }}></span> High</div></>
+                    )}
                   </div>
                 </div>
               </div>
