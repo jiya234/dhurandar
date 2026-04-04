@@ -54,3 +54,21 @@ class Researcher(models.Model):
 
     def __str__(self):
         return self.name
+class Field(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='fields'
+    )
+    field_name = models.CharField(max_length=100)
+    crop = models.CharField(max_length=100, blank=True, null=True)
+    area = models.FloatField(blank=True, null=True)
+    lat = models.FloatField()
+    lng = models.FloatField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'fields'   # Neon me same table name
+
+    def __str__(self):
+        return f"{self.field_name} ({self.user.email})"

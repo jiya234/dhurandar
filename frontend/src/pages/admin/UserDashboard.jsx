@@ -30,7 +30,7 @@ export default function UserDashboard() {
   const [user, setUser] = useState({ name: "", email: "", role: "" });
 
   useEffect(() => {
-  fetch("http://127.0.0.1:8000/api/researchers/")
+  fetch("http://127.0.0.1:8000/api/users/researchers/")
     .then(res => res.json())
     .then(data => setResearchData(data))
     .catch(err => console.error("Research fetch error:", err));
@@ -234,10 +234,7 @@ const handleSaveSettings = async () => {
 
 }, [inputLat, inputLng]);
   // --- 1. FIELDS STATE ---
-  const [fields, setFields] = useState([
-    { id: 1, name: "North Field", crop: "Wheat", area: "4.2", lat: 27.82, lng: 78.66, color: "green" },
-    { id: 2, name: "South Field", crop: "Mustard", area: "3.8", lat: 27.79, lng: 78.64, color: "yellow" }
-  ]);
+  const [fields, setFields] = useState([]); 
 
   // --- 2. MODAL STATE ---
   const [showModal, setShowModal] = useState(false);
@@ -248,6 +245,32 @@ const handleSaveSettings = async () => {
   const [nutrient, setNutrient] = useState("N"); 
 const [settings, setSettings] = useState({ name: "", email: "" });
 const [isSaving, setIsSaving] = useState(false);
+  const fetchFields = async () => {
+  const token = localStorage.getItem("token");
+
+  const res = await fetch("http://127.0.0.1:8000/api/users/fields/", {
+    headers: {
+      Authorization: `Token ${token}`,
+    },
+  });
+
+  const data = await res.json();
+
+  const formatted = data.map(f => ({
+    id: f.id,
+    name: f.field_name,
+    crop: f.crop || "Fallow",
+    area: f.area || "0",
+    lat: parseFloat(f.lat),
+    lng: parseFloat(f.lng),
+    color: "green"
+  }));
+
+  setFields(formatted);
+};
+useEffect(() => {
+  fetchFields();
+}, []);
   // --- 4. DATA FETCHING ---
   useEffect(() => {
     fetch("/soil_data.json")
@@ -255,6 +278,7 @@ const [isSaving, setIsSaving] = useState(false);
       .then(data => setSoilData(data.Sheet1 || []))
       .catch(err => console.log("Soil Data Error:", err));
   }, []);
+
 
   useEffect(() => {
   const token = localStorage.getItem("token");
@@ -311,20 +335,43 @@ const [isSaving, setIsSaving] = useState(false);
     return "#cccccc";
   };
 
-  const handleAddField = () => {
-    if (!newField.name || !newField.lat) return alert("Please fill details");
-    setFields([...fields, {
-      id: Date.now(),
-      name: newField.name,
-      crop: newField.crop || "Fallow",
-      area: newField.area || "0",
-      lat: parseFloat(newField.lat),
-      lng: parseFloat(newField.lng),
-      color: "brown"
-    }]);
+  const handleAddField = async () => {
+  const token = localStorage.getItem("token");
+
+  if (!newField.name || !newField.lat || !newField.lng) {
+    return alert("Please fill all details");
+  }
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/api/users/add-field/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+      },
+      body: JSON.stringify({
+        field_name: newField.name,
+        crop: newField.crop,
+        area: newField.area,
+        lat: parseFloat(newField.lat),
+        lng: parseFloat(newField.lng),
+      }),
+    });
+
+    const data = await res.json();
+    console.log("Saved:", data);
+
+    // 🔥 IMPORTANT → DB se fresh fetch
+    fetchFields();
+
     setShowModal(false);
     setNewField({ name: "", crop: "", area: "", lat: "", lng: "" });
-  };
+
+  } catch (err) {
+    console.error(err);
+    alert("Error saving field ❌");
+  }
+};
   const handleLogout = async () => {
   const confirmLogout = window.confirm("Are you sure you want to logout?");
   if (!confirmLogout) return;

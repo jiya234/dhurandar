@@ -3,12 +3,16 @@ import Home from "./pages/Home.jsx";
 import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
 import GetStarted from "./pages/GetStarted.jsx";
+import "./pages/ResetPassword.css";
+
 
 // Dashboards
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import UserDashboard from "./pages/admin/UserDashboard.jsx";
 import ResearcherDashboard from "./pages/admin/ResearcherDashboard.jsx";
 import GuestDashboard from "./pages/admin/GuestDashboard.jsx";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import Dashboard from "./pages/admin/Dashboard.jsx";
 import Users from "./pages/admin/Users.jsx";
@@ -25,6 +29,8 @@ function App() {
         <Route path="/get-started" element={<GetStarted />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:uidb64/:token" element={<ResetPassword />} /> 
 
         {/* --- 1. ADMIN DASHBOARD --- */}
         <Route path="/admin/dashboard" element={<AdminDashboard />}>

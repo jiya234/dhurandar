@@ -11,50 +11,52 @@ const Login = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    const res = await fetch("http://127.0.0.1:8000/api/users/login/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/users/login/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
 
-    const data = await res.json();
-    console.log("LOGIN RESPONSE:", data);
+      const data = await res.json();
+      console.log("LOGIN RESPONSE:", data);
 
-    if (!res.ok) {
-      alert(JSON.stringify(data));
-      return;
+      if (!res.ok) {
+        alert(data.error || "Login failed");
+        return;
+      }
+
+      const role = data.role?.toLowerCase();
+
+      if (!role) {
+        alert("Role missing from backend response");
+        return;
+      }
+
+      // ✅ Save data
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", role);
+      localStorage.setItem("user_id", data.user_id);
+      localStorage.setItem("email", data.email);
+
+      // ✅ Redirect
+      if (role === "admin") navigate("/admin/dashboard");
+      else if (role === "researcher") navigate("/researcher/dashboard");
+      else navigate("/user/dashboard");
+
+    } catch (err) {
+      console.error(err);
+      alert("Server error");
+    } finally {
+      setLoading(false);
     }
-    const role = data.role?.toLowerCase();
-
-if (!role) {
-  alert("Role not found in response");
-  console.log("FULL RESPONSE:", data);
-  return;
-}
-
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("role", role);
-    localStorage.setItem("user_id", data.user_id);
-    localStorage.setItem("email", data.email);
-
-    if (role === "admin") navigate("/admin/dashboard");
-    else if (role === "researcher") navigate("/researcher/dashboard");
-    else navigate("/user/dashboard");
-
-  } catch (err) {
-    console.error(err);
-    alert("Server error");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="login-wrapper">
@@ -94,7 +96,10 @@ if (!role) {
             </div>
           </div>
 
-          <div className="forgot-password">Forgot password?</div>
+          {/* ✅ FIXED */}
+          <div className="forgot-password">
+            <Link to="/forgot-password">Forgot password?</Link>
+          </div>
 
           <button type="submit" className="btn-login" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
