@@ -3,7 +3,31 @@ import {
   LayoutDashboard, Users, Settings,
   FileText, Loader2
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
+// ─── MOCK API (replace with real fetch calls) ───────────────────────────────
+const fetchStats = () =>
+
+  new Promise(resolve =>
+    setTimeout(() => resolve({ totalUsers: 120, activeResearch: 15 }), 900)
+  );
+
+const fetchPendingResearchers = () =>
+  new Promise(resolve =>
+    setTimeout(() => resolve([
+      { id: 1, name: "Dr. Kavita Iyer",  topic: "Soil Alkalinity Analysis",  date: "17 Jan 2026" },
+      { id: 2, name: "Rajesh Kumar",      topic: "Pest Control Mechanisms",   date: "16 Jan 2026" },
+      { id: 3, name: "Dr. Alan Grant",    topic: "Hybrid Wheat Yield Study",  date: "15 Jan 2026" },
+    ]), 700)
+  );
+
+const fetchVerifiedUsers = async () => {
+  const res = await fetch("http://localhost:8000/api/users/");
+  if (!res.ok) throw new Error("Failed to fetch users");
+  return res.json();
+};
+
+// ─── STYLES ──────────────────────────────────────────────────────────────────
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -31,6 +55,10 @@ body { font-family: 'Sora', sans-serif; }
 .avatar { width:34px; height:34px; border-radius:50%; background:var(--leaf); color:var(--forest); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0; }
 .user-chip .info h4 { font-size:13px; color:#fff; font-weight:600; }
 .user-chip .info p { font-size:11px; color:#86efac; margin-top:1px; font-family:'DM Mono',monospace; }
+
+.logout-btn { display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; cursor:pointer; color:#fca5a5; font-size:14px; font-weight:600; font-family:'Sora',sans-serif; background:rgba(220,38,38,.15); border:1px solid rgba(220,38,38,.25); transition:all .2s; width:100%; text-align:left; }
+.logout-btn:hover { background:rgba(220,38,38,.3); color:#fff; }
+
 .main { flex:1; padding:36px 40px; overflow-y:auto; max-width:1200px; }
 .page-header { margin-bottom:36px; }
 .page-header h1 { font-size:26px; font-weight:800; color:var(--text); letter-spacing:-.6px; }
@@ -76,6 +104,22 @@ td.bold { font-weight:600; color:var(--text); }
 .toggle-row .lbl p { font-size:12px; color:var(--muted); margin-top:2px; }
 .btn-green { background:var(--forest-mid); color:#fff; border:none; padding:11px 22px; border-radius:10px; font-weight:700; cursor:pointer; font-size:14px; font-family:'Sora',sans-serif; display:inline-flex; align-items:center; gap:7px; }
 .danger-zone { border:1px solid #fecaca !important; background:var(--red-bg) !important; }
+.delete-btn {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid #fecaca;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  transition: all .15s;
+}
+.delete-btn:hover {
+  background: var(--red);
+  color: #fff;
+}
 `;
 
 export default function AdminDashboard() {
@@ -84,52 +128,18 @@ export default function AdminDashboard() {
   const [notifs, setNotifs] = useState({ email: true, push: false, weekly: true });
   const [researchers, setResearchers] = useState(null);
   const [verified, setVerified] = useState(null);
+  const [user, setUser] = useState({ name: "", email: "", role: "" });
   const fetched = useRef(false);
+  const navigate = useNavigate();
+const [isAuthChecked, setIsAuthChecked] = useState(false);
+const handleLogout = () => {
+  localStorage.removeItem("token");
+  navigate("/login");
+};
+const deleteResearcher = (id) => {
+    if (!window.confirm("Do you really want to Delete this Dataset Link?")) return;
 
-  useEffect(() => {
-    if (fetched.current) return;
-    fetched.current = true;
-
-    const token =
-      localStorage.getItem("token") ||
-      localStorage.getItem("authToken") ||
-      localStorage.getItem("access");
-
-    // ✅ Logged-in user ka actual profile fetch karo
-    fetch("http://localhost:8000/api/users/profile/", {
-      headers: { "Authorization": `Token ${token}` }
-    })
-      .then(r => r.json())
-      .then(data => {
-        setProfile({
-          name: data.full_name || "",
-          email: data.email || "",
-          phone: ""
-        });
-      })
-      .catch(() => {});
-
-    // Users list
-    fetch("http://localhost:8000/api/users/")
-      .then(r => r.json())
-      .then(data => setVerified(data))
-      .catch(() => setVerified([]));
-
-    // Researchers list
-    fetch("http://localhost:8000/api/users/researchers/")
-      .then(r => r.json())
-      .then(data => setResearchers(data))
-      .catch(() => setResearchers([]));
-  }, []);
-
-  // ✅ Researcher delete
-  const deleteResearcher = (id) => {
-    if (!window.confirm("Kya aap is dataset link ko delete karna chahte hain?")) return;
-
-    const token =
-      localStorage.getItem("token") ||
-      localStorage.getItem("authToken") ||
-      localStorage.getItem("access");
+    const token = localStorage.getItem("token");
 
     fetch(`http://localhost:8000/api/users/researchers/${id}/`, {
       method: "DELETE",
@@ -137,16 +147,69 @@ export default function AdminDashboard() {
         "Authorization": `Token ${token}`,
         "Content-Type": "application/json",
       }
-    }).then(r => {
-      if (r.ok || r.status === 204) {
-        setResearchers(prev => prev.filter(x => x.id !== id));
-      } else {
-        alert("Delete nahi hua! Status: " + r.status);
-      }
-    }).catch(() => alert("Server se connect nahi ho paya."));
+    })
+      .then(r => {
+        if (r.ok || r.status === 204) {
+          setResearchers(prev => prev.filter(x => x.id !== id));
+        } else {
+          alert("Not Deleted! Status: " + r.status);
+        }
+      })
+      .catch(() => alert("Server error"));
   };
 
-  const avatarLetter = profile.name ? profile.name.charAt(0).toUpperCase() : "A";
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  fetch("http://127.0.0.1:8000/api/users/profile/", {
+    headers: {
+      Authorization: `Token ${token}`
+    }
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to fetch profile");
+      return res.json();
+    })
+    .then(data => {
+      setUser({
+        name: data.full_name,
+        email: data.email,
+        role: data.role
+      });
+
+      setSettings({
+        name: data.full_name,
+        email: data.email
+      });
+    })
+    .catch(err => {
+      console.error("Profile fetch error:", err);
+    });
+}, []);
+
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    navigate("/login");
+    return;
+  }
+
+  setIsAuthChecked(true);
+
+  if (fetched.current) return;
+  fetched.current = true;
+
+    fetch("http://localhost:8000/api/users/")
+      .then(r => r.json())
+      .then(data => setVerified(data))
+      .catch(() => setVerified([]));
+
+    fetch("http://localhost:8000/api/users/researchers/")
+      .then(r => r.json())
+      .then(data => setResearchers(data))
+      .catch(() => setResearchers([]));
+  }, []);
 
   return (
     <>
@@ -166,13 +229,9 @@ export default function AdminDashboard() {
             <div className={`nav-item ${tab === "settings" ? "active" : ""}`} onClick={() => setTab("settings")}>
               <Settings size={18} /> <span>Settings</span>
             </div>
-            {/* ✅ Dynamic — jo bhi login kare uska naam/email dikhe */}
             <div className="user-chip">
-              <div className="avatar">{avatarLetter}</div>
-              <div className="info">
-                <h4>{profile.name || "User"}</h4>
-                <p>{profile.email || ""}</p>
-              </div>
+              <div className="avatar">AS</div>
+              <div className="info"><h4>Admin User</h4><p>tayalveer20@gmail.com</p></div>
             </div>
           </div>
         </aside>
@@ -181,8 +240,7 @@ export default function AdminDashboard() {
           {tab === "dashboard" && (
             <>
               <div className="page-header">
-                <h1>Overview</h1>
-                <p>Welcome back, {profile.name ? profile.name.split(" ")[0] : "Admin"}</p>
+                <h1>Overview</h1><p>Welcome back, Admin</p>
               </div>
 
               <div className="stats-row">
@@ -214,23 +272,18 @@ export default function AdminDashboard() {
                   : researchers.length === 0
                     ? <p style={{ color: "var(--muted)", fontSize: 14 }}>No datasets yet.</p>
                     : <table>
-                        <thead>
-                          <tr>
-                            <th>ID</th><th>Name</th><th>Link</th><th>User ID</th><th>Action</th>
-                          </tr>
-                        </thead>
+                        <thead><tr><th>ID</th><th>Name</th><th>Link</th><th>User ID</th></tr></thead>
                         <tbody>
                           {researchers.map(r => (
-                            <tr key={r.id}>
+                           <tr key={r.id}>
                               <td className="dim">#{r.id}</td>
                               <td className="bold">{r.name}</td>
-                              <td><a href={r.url} target="_blank" rel="noopener noreferrer" className="link-btn">View link</a></td>
-                              <td className="dim">{r.user_id}</td>
                               <td>
-                                <button className="delete-btn" onClick={() => deleteResearcher(r.id)}>
-                                  Delete
-                                </button>
+                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="link-btn">
+                                  View link
+                                </a>
                               </td>
+                              <td className="dim">{r.user_id}</td>
                             </tr>
                           ))}
                         </tbody>
