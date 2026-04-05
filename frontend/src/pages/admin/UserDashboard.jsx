@@ -898,9 +898,8 @@ const getInitials = (name) => {
                                     Phosphorus: clickedData.P,
                                     Potassium: clickedData.K,
                                     Ph: clickedData.ph,
-                                    temperature: weather.temperature,
-                                    humidity: weather.humidity,
-                                    rainfall: weather.rainfall
+                                    latitude: clickedData.lat,     // ✅ ADD THIS
+                                    longitude: clickedData.lng 
                                   })
                                 });
 
