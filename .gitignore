@@ -30,4 +30,4 @@ build/
 .DS_Store
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
+yarn-error.log*crop_ml/.venv/
