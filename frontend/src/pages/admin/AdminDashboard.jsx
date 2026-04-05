@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard, Users, Settings,
-  FileText, CheckCircle2, Loader2
+  FileText, Loader2
 } from "lucide-react";
 
 const css = `
@@ -64,6 +64,8 @@ td.dim { color:var(--muted); font-family:'DM Mono',monospace; font-size:13px; }
 td.bold { font-weight:600; color:var(--text); }
 .link-btn { color:var(--forest-mid); font-weight:600; font-size:13px; text-decoration:none; }
 .link-btn:hover { text-decoration:underline; }
+.delete-btn { background:var(--red-bg); color:var(--red); border:1px solid #fecaca; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Sora',sans-serif; transition:all .15s; }
+.delete-btn:hover { background:var(--red); color:#fff; }
 .settings-grid { display:grid; grid-template-columns:1.1fr 1fr; gap:24px; }
 .form-field { margin-bottom:14px; }
 .form-field label { display:block; font-size:12px; font-weight:700; color:var(--text); margin-bottom:5px; text-transform:uppercase; letter-spacing:.4px; }
@@ -78,7 +80,7 @@ td.bold { font-weight:600; color:var(--text); }
 
 export default function AdminDashboard() {
   const [tab, setTab] = useState("dashboard");
-  const [profile, setProfile] = useState({ name: "Admin User", email: "tayalveer20@gmail.com", phone: "" });
+  const [profile, setProfile] = useState({ name: "", email: "", phone: "" });
   const [notifs, setNotifs] = useState({ email: true, push: false, weekly: true });
   const [researchers, setResearchers] = useState(null);
   const [verified, setVerified] = useState(null);
@@ -88,16 +90,63 @@ export default function AdminDashboard() {
     if (fetched.current) return;
     fetched.current = true;
 
+    const token =
+      localStorage.getItem("token") ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("access");
+
+    // ✅ Logged-in user ka actual profile fetch karo
+    fetch("http://localhost:8000/api/users/profile/", {
+      headers: { "Authorization": `Token ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        setProfile({
+          name: data.full_name || "",
+          email: data.email || "",
+          phone: ""
+        });
+      })
+      .catch(() => {});
+
+    // Users list
     fetch("http://localhost:8000/api/users/")
       .then(r => r.json())
       .then(data => setVerified(data))
       .catch(() => setVerified([]));
 
+    // Researchers list
     fetch("http://localhost:8000/api/users/researchers/")
       .then(r => r.json())
       .then(data => setResearchers(data))
       .catch(() => setResearchers([]));
   }, []);
+
+  // ✅ Researcher delete
+  const deleteResearcher = (id) => {
+    if (!window.confirm("Kya aap is dataset link ko delete karna chahte hain?")) return;
+
+    const token =
+      localStorage.getItem("token") ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("access");
+
+    fetch(`http://localhost:8000/api/users/researchers/${id}/`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      }
+    }).then(r => {
+      if (r.ok || r.status === 204) {
+        setResearchers(prev => prev.filter(x => x.id !== id));
+      } else {
+        alert("Delete nahi hua! Status: " + r.status);
+      }
+    }).catch(() => alert("Server se connect nahi ho paya."));
+  };
+
+  const avatarLetter = profile.name ? profile.name.charAt(0).toUpperCase() : "A";
 
   return (
     <>
@@ -117,9 +166,13 @@ export default function AdminDashboard() {
             <div className={`nav-item ${tab === "settings" ? "active" : ""}`} onClick={() => setTab("settings")}>
               <Settings size={18} /> <span>Settings</span>
             </div>
+            {/* ✅ Dynamic — jo bhi login kare uska naam/email dikhe */}
             <div className="user-chip">
-              <div className="avatar">AS</div>
-              <div className="info"><h4>Admin User</h4><p>tayalveer20@gmail.com</p></div>
+              <div className="avatar">{avatarLetter}</div>
+              <div className="info">
+                <h4>{profile.name || "User"}</h4>
+                <p>{profile.email || ""}</p>
+              </div>
             </div>
           </div>
         </aside>
@@ -128,7 +181,8 @@ export default function AdminDashboard() {
           {tab === "dashboard" && (
             <>
               <div className="page-header">
-                <h1>Overview</h1><p>Welcome back, Admin</p>
+                <h1>Overview</h1>
+                <p>Welcome back, {profile.name ? profile.name.split(" ")[0] : "Admin"}</p>
               </div>
 
               <div className="stats-row">
@@ -158,9 +212,13 @@ export default function AdminDashboard() {
                 {researchers === null
                   ? <div className="loading"><Loader2 size={18} className="spin" /> Loading…</div>
                   : researchers.length === 0
-                    ? <p style={{ color:"var(--muted)", fontSize:14 }}>No datasets yet.</p>
+                    ? <p style={{ color: "var(--muted)", fontSize: 14 }}>No datasets yet.</p>
                     : <table>
-                        <thead><tr><th>ID</th><th>Name</th><th>Link</th><th>User ID</th></tr></thead>
+                        <thead>
+                          <tr>
+                            <th>ID</th><th>Name</th><th>Link</th><th>User ID</th><th>Action</th>
+                          </tr>
+                        </thead>
                         <tbody>
                           {researchers.map(r => (
                             <tr key={r.id}>
@@ -168,6 +226,11 @@ export default function AdminDashboard() {
                               <td className="bold">{r.name}</td>
                               <td><a href={r.url} target="_blank" rel="noopener noreferrer" className="link-btn">View link</a></td>
                               <td className="dim">{r.user_id}</td>
+                              <td>
+                                <button className="delete-btn" onClick={() => deleteResearcher(r.id)}>
+                                  Delete
+                                </button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -209,34 +272,38 @@ export default function AdminDashboard() {
               <div className="settings-grid">
                 <div>
                   <div className="card">
-                    <h3 style={{fontSize:15,fontWeight:700,marginBottom:16}}>Profile</h3>
-                    {[["Full Name","text","name"],["Email","email","email"],["Phone","text","phone"]].map(([label,type,key]) => (
+                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Profile</h3>
+                    {[["Full Name", "text", "name"], ["Email", "email", "email"], ["Phone", "text", "phone"]].map(([label, type, key]) => (
                       <div className="form-field" key={key}>
                         <label>{label}</label>
-                        <input type={type} value={profile[key]} onChange={e => setProfile({...profile,[key]:e.target.value})} />
+                        <input type={type} value={profile[key]} onChange={e => setProfile({ ...profile, [key]: e.target.value })} />
                       </div>
                     ))}
                   </div>
                   <div className="card">
-                    <h3 style={{fontSize:15,fontWeight:700,marginBottom:16}}>Security</h3>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Security</h3>
                     <div className="form-field"><label>Current Password</label><input type="password" placeholder="••••••••" /></div>
                     <div className="form-field"><label>New Password</label><input type="password" placeholder="New password" /></div>
                   </div>
                 </div>
                 <div>
                   <div className="card">
-                    <h3 style={{fontSize:15,fontWeight:700,marginBottom:16}}>Notifications</h3>
-                    {[{key:"email",label:"Email Alerts",sub:"Get updates via email"},{key:"push",label:"Push Notifications",sub:"Browser popups"},{key:"weekly",label:"Weekly Reports",sub:"Summary every Monday"}].map(({key,label,sub}) => (
+                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Notifications</h3>
+                    {[
+                      { key: "email", label: "Email Alerts", sub: "Get updates via email" },
+                      { key: "push", label: "Push Notifications", sub: "Browser popups" },
+                      { key: "weekly", label: "Weekly Reports", sub: "Summary every Monday" }
+                    ].map(({ key, label, sub }) => (
                       <div className="toggle-row" key={key}>
                         <div className="lbl"><h4>{label}</h4><p>{sub}</p></div>
-                        <input type="checkbox" checked={notifs[key]} onChange={() => setNotifs({...notifs,[key]:!notifs[key]})} style={{width:18,height:18,cursor:"pointer",accentColor:"var(--forest-mid)"}} />
+                        <input type="checkbox" checked={notifs[key]} onChange={() => setNotifs({ ...notifs, [key]: !notifs[key] })} style={{ width: 18, height: 18, cursor: "pointer", accentColor: "var(--forest-mid)" }} />
                       </div>
                     ))}
                   </div>
                   <div className="card danger-zone">
-                    <h3 style={{color:"var(--red)",fontSize:15,fontWeight:700,marginBottom:8}}>Danger Zone</h3>
-                    <p style={{fontSize:12,color:"#7f1d1d",marginBottom:14}}>Actions here cannot be undone.</p>
-                    <button style={{width:"100%",padding:"11px",background:"var(--red)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer"}}>Delete My Account</button>
+                    <h3 style={{ color: "var(--red)", fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Danger Zone</h3>
+                    <p style={{ fontSize: 12, color: "#7f1d1d", marginBottom: 14 }}>Actions here cannot be undone.</p>
+                    <button style={{ width: "100%", padding: "11px", background: "var(--red)", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>Delete My Account</button>
                   </div>
                 </div>
               </div>
