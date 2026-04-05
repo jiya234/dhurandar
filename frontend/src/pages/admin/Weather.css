@@ -35,11 +35,59 @@
   background: var(--bg-base);
 }
 
-/* Subtle condition tints layered on top of base */
-.weather-page.day    { background: radial-gradient(ellipse 80% 50% at 60% -10%, rgba(56,189,248,0.12) 0%, transparent 60%), var(--bg-base); }
-.weather-page.night  { background: radial-gradient(ellipse 70% 50% at 20% 10%, rgba(99,102,241,0.12) 0%, transparent 60%), #080e18; }
-.weather-page.rain   { background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(14,165,233,0.1) 0%, transparent 60%), #0a1520; }
-.weather-page.cloudy { background: radial-gradient(ellipse 80% 50% at 30% 0%, rgba(148,163,184,0.08) 0%, transparent 60%), #111820; }
+/* ☀️ Clear (Day) */
+.weather-page.clear {
+  background: linear-gradient(135deg, #56ccf2, #2f80ed);
+  color: white;
+}
+
+/* 🌤 Partly Cloudy */
+.weather-page.partly-cloudy {
+  background: linear-gradient(135deg, #89f7fe, #66a6ff);
+  color: #222;
+}
+
+/* ☁️ Cloudy */
+.weather-page.cloudy {
+  background: linear-gradient(135deg, #bdc3c7, #2c3e50);
+  color: #222;
+}
+
+/* ☁️ Heavy Clouds */
+.weather-page.heavy-clouds {
+  background: linear-gradient(135deg, #757f9a, #d7dde8);
+  color: #111;
+}
+
+/* 🌧 Rain */
+.weather-page.rain {
+  background: linear-gradient(135deg, #4b79a1, #283e51);
+  color: white;
+}
+
+/* 🌧🌧 Heavy Rain */
+.weather-page.heavy-rain {
+  background: linear-gradient(135deg, #232526, #414345);
+  color: white;
+}
+
+/* ⛈ Thunderstorm */
+.weather-page.thunder {
+  background: linear-gradient(135deg, #0f2027, #000000);
+  color: white;
+}
+
+/* 🌙 Night Clear */
+.weather-page.night-clear {
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: white;
+}
+
+/* 🌙 Night Cloudy */
+.weather-page.night-cloudy {
+  background: linear-gradient(135deg, #232526, #414345);
+  color: white;
+}
 
 /* MAIN CONTAINER */
 .weather-container {

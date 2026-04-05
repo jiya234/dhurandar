@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -5,9 +6,15 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
-
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+# views.py ke TOP pe ye do lines add karo
+from django.conf import settings
+
 
 from .serializers import SignupSerializer, LoginSerializer
 
@@ -102,11 +109,12 @@ def users_list(request):
 # =========================
 # 📊 RESEARCHER DATA
 # =========================
+# views.py
+
 @api_view(['GET', 'DELETE'])
 def researcher_list(request, pk=None):
     from .models import Researcher
 
-    # 🔴 DELETE
     if request.method == 'DELETE' and pk:
         try:
             r = Researcher.objects.get(id=pk)
@@ -115,12 +123,10 @@ def researcher_list(request, pk=None):
         except Researcher.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
 
-    # 🟢 GET (THIS WAS MISSING PROPERLY)
     if request.method == 'GET':
         data = Researcher.objects.all().select_related('user').values(
             'id', 'name', 'url', 'date', 'user_id', 'user__full_name'
         )
-
         return Response([{
             'id': d['id'],
             'name': d['name'],
@@ -129,31 +135,37 @@ def researcher_list(request, pk=None):
             'user_id': d['user_id'],
             'researcher_name': d['user__full_name'] or f"User {d['user_id']}"
         } for d in data])
-# =========================
-# ➕ ADD RESEARCHER DATASET
-# =========================
+
+
+# ✅ Fix: get user from token, not from body
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def researcher_add(request):
     from .models import Researcher
     from django.utils import timezone
 
     name = request.data.get('name')
     url = request.data.get('url')
-    user_id = request.data.get('user_id')
 
-    if not name or not url or not user_id:
-        return Response({"error": "name, url, user_id required"}, status=400)
+    if not name or not url:
+        return Response({"error": "name and url are required"}, status=400)
 
     r = Researcher.objects.create(
         name=name,
         url=url,
-        user_id=user_id,
+        user=request.user,          # ✅ from token, no need to send user_id
         date=timezone.now().date()
     )
 
-    return Response({"message": "Dataset added", "id": r.id}, status=201)
-
-
+    return Response({
+        "message": "Dataset added",
+        "id": r.id,
+        "name": r.name,
+        "url": r.url,
+        "date": r.date,
+        "researcher_name": request.user.full_name
+    }, status=201)
 # =========================
 # 🔍 GET USER BY EMAIL
 # =========================
@@ -195,3 +207,124 @@ def update_user(request):
         "full_name": user.full_name,
         "email": user.email,
     })
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.contrib.auth import logout
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+
+@api_view(['POST'])
+def logout_user(request):
+    try:
+        refresh_token = request.data.get("refresh")
+
+        if refresh_token:
+            token = RefreshToken(refresh_token)
+            token.blacklist()   # 🔥 JWT destroy
+
+        return Response({"message": "Logout successful"})
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+# =========================
+# 🌾 ADD FIELD
+# =========================
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def add_field(request):
+    from .models import Field
+
+    user = request.user
+
+    field = Field.objects.create(
+        user=user,
+        field_name=request.data.get('field_name'),
+        crop=request.data.get('crop'),
+        area=request.data.get('area'),
+        lat=request.data.get('lat'),
+        lng=request.data.get('lng')
+    )
+
+    return Response({
+        "message": "Field added successfully",
+        "id": field.id
+    })
+
+
+# =========================
+# 📍 GET USER FIELDS
+# =========================
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_fields(request):
+    from .models import Field
+
+    user = request.user
+
+    fields = Field.objects.filter(user=user)
+
+    data = []
+    for f in fields:
+        data.append({
+            "id": f.id,
+            "field_name": f.field_name,
+            "crop": f.crop,
+            "area": f.area,
+            "lat": f.lat,
+            "lng": f.lng
+        })
+
+    return Response(data)
+
+class ResetPasswordView(APIView):
+    def post(self, request, uidb64, token):
+        User = get_user_model()
+        password = request.data.get("password")
+
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except:
+            return Response({"error": "Invalid link"}, status=400)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"error": "Invalid or expired token"}, status=400)
+
+        user.set_password(password)
+        user.save()
+
+        return Response({"message": "Password reset successful"})
+
+from django.core.mail import send_mail
+
+class ForgotPasswordView(APIView):
+    def post(self, request):
+        User = get_user_model()
+        email = request.data.get("email")
+
+        if not email:
+            return Response({"error": "Email required"}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        reset_link = f"http://localhost:3000/reset-password/{uid}/{token}/"
+
+        # ✅ ACTUAL EMAIL BHEJO
+        send_mail(
+            subject="AgriSmart - Password Reset Link",
+            message=f"Hi {user.full_name},\n\nYour password reset link:\n{reset_link}\n\nThis link expires in 15 minutes.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+
+        return Response({"message": "Reset link sent to your email ✅"})

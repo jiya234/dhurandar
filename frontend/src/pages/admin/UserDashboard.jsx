@@ -27,16 +27,22 @@ export default function UserDashboard() {
   const [inputLng, setInputLng] = useState("78.65");
   const [researchData, setResearchData] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false); // Loading state
-
-const [user, setUser] = useState({ name: "", email: "", role: "" });
+  const [user, setUser] = useState({ name: "", email: "", role: "" });
 
   useEffect(() => {
-  fetch("http://127.0.0.1:8000/api/researchers/")
+  fetch("http://127.0.0.1:8000/api/users/researchers/")
     .then(res => res.json())
     .then(data => setResearchData(data))
     .catch(err => console.error("Research fetch error:", err));
 }, []);
+useEffect(() => {
+  const token = localStorage.getItem("token");
 
+  if (!token) {
+    // ❌ agar token nahi hai → bahar fek do
+    window.location.href = "/login";
+  }
+}, []);
   // --- 🧠 AI LOGIC TO UPDATE CROPS ---
   const handleGenerate = async () => {
   try {
@@ -133,7 +139,9 @@ const handleSaveSettings = async () => {
   const [activePage, setActivePage] = useState("dashboard");
   const [place, setPlace] = useState("");
   const [selectedSoil, setSelectedSoil] = useState(null);
-  
+  const [showSoilModal, setShowSoilModal] = useState(false);
+  const [soilPrediction, setSoilPrediction] = useState([]);
+  const [loadingPrediction, setLoadingPrediction] = useState(false);
   function MapClickHandler() {
   useMapEvents({
     click(e) {
@@ -226,10 +234,7 @@ const handleSaveSettings = async () => {
 
 }, [inputLat, inputLng]);
   // --- 1. FIELDS STATE ---
-  const [fields, setFields] = useState([
-    { id: 1, name: "North Field", crop: "Wheat", area: "4.2", lat: 27.82, lng: 78.66, color: "green" },
-    { id: 2, name: "South Field", crop: "Mustard", area: "3.8", lat: 27.79, lng: 78.64, color: "yellow" }
-  ]);
+  const [fields, setFields] = useState([]); 
 
   // --- 2. MODAL STATE ---
   const [showModal, setShowModal] = useState(false);
@@ -240,6 +245,32 @@ const handleSaveSettings = async () => {
   const [nutrient, setNutrient] = useState("N"); 
 const [settings, setSettings] = useState({ name: "", email: "" });
 const [isSaving, setIsSaving] = useState(false);
+  const fetchFields = async () => {
+  const token = localStorage.getItem("token");
+
+  const res = await fetch("http://127.0.0.1:8000/api/users/fields/", {
+    headers: {
+      Authorization: `Token ${token}`,
+    },
+  });
+
+  const data = await res.json();
+
+  const formatted = data.map(f => ({
+    id: f.id,
+    name: f.field_name,
+    crop: f.crop || "Fallow",
+    area: f.area || "0",
+    lat: parseFloat(f.lat),
+    lng: parseFloat(f.lng),
+    color: "green"
+  }));
+
+  setFields(formatted);
+};
+useEffect(() => {
+  fetchFields();
+}, []);
   // --- 4. DATA FETCHING ---
   useEffect(() => {
     fetch("/soil_data.json")
@@ -247,6 +278,7 @@ const [isSaving, setIsSaving] = useState(false);
       .then(data => setSoilData(data.Sheet1 || []))
       .catch(err => console.log("Soil Data Error:", err));
   }, []);
+
 
   useEffect(() => {
   const token = localStorage.getItem("token");
@@ -303,20 +335,71 @@ const [isSaving, setIsSaving] = useState(false);
     return "#cccccc";
   };
 
-  const handleAddField = () => {
-    if (!newField.name || !newField.lat) return alert("Please fill details");
-    setFields([...fields, {
-      id: Date.now(),
-      name: newField.name,
-      crop: newField.crop || "Fallow",
-      area: newField.area || "0",
-      lat: parseFloat(newField.lat),
-      lng: parseFloat(newField.lng),
-      color: "brown"
-    }]);
+  const handleAddField = async () => {
+  const token = localStorage.getItem("token");
+
+  if (!newField.name || !newField.lat || !newField.lng) {
+    return alert("Please fill all details");
+  }
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/api/users/add-field/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${token}`,
+      },
+      body: JSON.stringify({
+        field_name: newField.name,
+        crop: newField.crop,
+        area: newField.area,
+        lat: parseFloat(newField.lat),
+        lng: parseFloat(newField.lng),
+      }),
+    });
+
+    const data = await res.json();
+    console.log("Saved:", data);
+
+    // 🔥 IMPORTANT → DB se fresh fetch
+    fetchFields();
+
     setShowModal(false);
     setNewField({ name: "", crop: "", area: "", lat: "", lng: "" });
-  };
+
+  } catch (err) {
+    console.error(err);
+    alert("Error saving field ❌");
+  }
+};
+  const handleLogout = async () => {
+  const confirmLogout = window.confirm("Are you sure you want to logout?");
+  if (!confirmLogout) return;
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/api/users/logout/", {
+      method: "POST",
+      credentials: "include", // important for session
+    });
+
+    const data = await res.json();
+    console.log("Logout response:", data);
+
+    if (res.ok) {
+      // 🔥 token bhi delete karo (important)
+      localStorage.removeItem("token");
+      sessionStorage.clear();
+
+      // 🔥 redirect
+      window.location.href = "/login";
+    } else {
+      alert("Logout failed ❌");
+    }
+  } catch (err) {
+    console.error("Logout error:", err);
+    alert("Server error ❌");
+  }
+};
 const getInitials = (name) => {
   if (!name) return "U";
   return name
@@ -345,6 +428,8 @@ const getInitials = (name) => {
     <p>{user.region || "No region set"}</p>
   </div>
 
+  <div className="status-badge">● Active field</div>
+
 </div>
 
         <nav className="nav-menu">
@@ -361,7 +446,7 @@ const getInitials = (name) => {
           <div className={`nav-item ${activePage === "settings" ? "active" : ""}`} onClick={() => setActivePage("settings")}><Settings size={18} /> <span>Settings</span></div>
         </nav>
 
-        <div className="logout-section" onClick={() => alert("Logging out...")}>
+        <div className="logout-section" onClick={handleLogout}>
           <LogOut size={18} />
           <span>Logout</span>
         </div>
@@ -373,7 +458,7 @@ const getInitials = (name) => {
        {activePage === "dashboard" && (
   <div className="content-fade-in" key="dashboard">
     <header className="page-header">
-    <h1>Good Morning, {user.name} 👋</h1>
+    <h1>Welcome, {user.name} 👋</h1>
       <p>Here's what's happening with your fields today</p>
     </header>
 
@@ -657,8 +742,7 @@ const getInitials = (name) => {
             <Weather />
           </div>
         )}
-        {/* 3. FIELD MAP PAGE */}
-        {activePage === "fieldMap" && (
+         {activePage === "fieldMap" && (
           <div className="content-fade-in" key="fieldMap">
             <header className="page-header-flex">
               <div>
@@ -781,13 +865,53 @@ const getInitials = (name) => {
                             weight: 0
                           }}
                           eventHandlers={{
-                            click: () => {
-                              setSelectedSoil({
+                            click: async () => {
+                              const clickedData = {
                                 lat: cell.Latitude,
                                 lng: cell.Longitude,
-                                value: val,
-                                type: nutrient
-                              });
+                                N: cell.n,
+                                P: cell.p,
+                                K: cell.k,
+                                ph: cell.pH
+                              };
+
+                              setSelectedSoil(clickedData);
+                              setShowSoilModal(true);
+
+                              try {
+                                setLoadingPrediction(true);
+
+                                // ✅ 1. WEATHER FETCH
+                                const weatherRes = await fetch(
+                                  `http://127.0.0.1:5000/weather?lat=${clickedData.lat}&lon=${clickedData.lng}`
+                                );
+                                const weather = await weatherRes.json();
+
+                                // ✅ 2. MODEL CALL
+                                const res = await fetch("http://127.0.0.1:5000/predict", {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json"
+                                  },
+                                  body: JSON.stringify({
+                                    Nitrogen: clickedData.N,
+                                    Phosphorus: clickedData.P,
+                                    Potassium: clickedData.K,
+                                    Ph: clickedData.ph,
+                                    temperature: weather.temperature,
+                                    humidity: weather.humidity,
+                                    rainfall: weather.rainfall
+                                  })
+                                });
+
+                                const data = await res.json();
+
+                                setSoilPrediction(data.recommendations || []);
+                              } catch (err) {
+                                console.error("Prediction error:", err);
+                              } finally {
+                                setLoadingPrediction(false);
+                              }
                             }
                           }}
                         >
@@ -826,29 +950,58 @@ const getInitials = (name) => {
                   </MapContainer>
 
                   {/* 🌱 SOIL INSIGHT */}
-                  {selectedSoil && (
-                    <div style={{
-                      position: "absolute",
-                      top: "80px",
-                      right: "20px",
-                      background: "#fff",
-                      padding: "12px 16px",
-                      borderRadius: "10px",
-                      boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-                      zIndex: 1000,
-                      minWidth: "200px"
-                    }}>
-                      <h4 style={{ margin: "0 0 5px" }}>🌱 Soil Insight</h4>
-                      <p style={{ margin: "0" }}>
-                        {selectedSoil.type}: <strong>{selectedSoil.value}</strong>
-                      </p>
-                      <p style={{ fontSize: "13px", marginTop: "5px" }}>
-                        👉 {selectedSoil.value < 150
-                          ? "Low nutrient - Add fertilizer"
-                          : "Soil condition is good"}
-                      </p>
-                    </div>
-                  )}
+                  {showSoilModal && selectedSoil && (
+                     <div className="soil-modal-overlay">
+                          <div className="soil-modal">
+
+                            <h2 className="modal-title">🌱 Soil Insights</h2>
+
+                            <div className="soil-grid">
+                              <div className="soil-card n">
+                                <span>N</span>
+                                <strong>{selectedSoil.N}</strong>
+                              </div>
+                              <div className="soil-card p">
+                                <span>P</span>
+                                <strong>{selectedSoil.P}</strong>
+                              </div>
+                              <div className="soil-card k">
+                                <span>K</span>
+                                <strong>{selectedSoil.K}</strong>
+                              </div>
+                              <div className="soil-card ph">
+                                <span>pH</span>
+                                <strong>{selectedSoil.ph}</strong>
+                              </div>
+                            </div>
+
+                            <div className="prediction-box">
+                              <h3>🌾 Top Crop Recommendations</h3>
+
+                              {loadingPrediction ? (
+                                <div className="loader"></div>
+                              ) : (
+                                <div className="crop-list-modal">
+                                  {soilPrediction.slice(0, 3).map((crop, idx) => (
+                                    <div key={idx} className="crop-item">
+                                      🌱 {crop.crop}
+                                      <span>{crop.confidence.toFixed(1)}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <button className="close-btn-modal" onClick={() => {
+                              setShowSoilModal(false);
+                              setSoilPrediction([]);
+                            }}>
+                              Close
+                            </button>
+
+                          </div>
+                        </div> 
+                    )}
 
                   {/* LEGEND */}
                   <div className="map-legend-overlay">
