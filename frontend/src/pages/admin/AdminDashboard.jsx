@@ -102,6 +102,22 @@ td.bold { font-weight:600; color:var(--text); }
 .toggle-row .lbl p { font-size:12px; color:var(--muted); margin-top:2px; }
 .btn-green { background:var(--forest-mid); color:#fff; border:none; padding:11px 22px; border-radius:10px; font-weight:700; cursor:pointer; font-size:14px; font-family:'Sora',sans-serif; display:inline-flex; align-items:center; gap:7px; }
 .danger-zone { border:1px solid #fecaca !important; background:var(--red-bg) !important; }
+.delete-btn {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid #fecaca;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  transition: all .15s;
+}
+.delete-btn:hover {
+  background: var(--red);
+  color: #fff;
+}
 `;
 
 export default function AdminDashboard() {
@@ -110,6 +126,7 @@ export default function AdminDashboard() {
   const [notifs, setNotifs] = useState({ email: true, push: false, weekly: true });
   const [researchers, setResearchers] = useState(null);
   const [verified, setVerified] = useState(null);
+  const [user, setUser] = useState({ name: "", email: "", role: "" });
   const fetched = useRef(false);
   const navigate = useNavigate();
 const [isAuthChecked, setIsAuthChecked] = useState(false);
@@ -117,7 +134,56 @@ const handleLogout = () => {
   localStorage.removeItem("token");
   navigate("/login");
 };
+const deleteResearcher = (id) => {
+    if (!window.confirm("Do you really want to Delete this Dataset Link?")) return;
 
+    const token = localStorage.getItem("token");
+
+    fetch(`http://localhost:8000/api/users/researchers/${id}/`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Token ${token}`,
+        "Content-Type": "application/json",
+      }
+    })
+      .then(r => {
+        if (r.ok || r.status === 204) {
+          setResearchers(prev => prev.filter(x => x.id !== id));
+        } else {
+          alert("Not Deleted! Status: " + r.status);
+        }
+      })
+      .catch(() => alert("Server error"));
+  };
+
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  fetch("http://127.0.0.1:8000/api/users/profile/", {
+    headers: {
+      Authorization: `Token ${token}`
+    }
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to fetch profile");
+      return res.json();
+    })
+    .then(data => {
+      setUser({
+        name: data.full_name,
+        email: data.email,
+        role: data.role
+      });
+
+      setSettings({
+        name: data.full_name,
+        email: data.email
+      });
+    })
+    .catch(err => {
+      console.error("Profile fetch error:", err);
+    });
+}, []);
 
 useEffect(() => {
   const token = localStorage.getItem("token");
@@ -143,6 +209,14 @@ useEffect(() => {
     .catch(() => setResearchers([]));
 
 }, []);
+const getInitials = (name) => {
+  if (!name) return "U";
+  return name
+    .split(" ")
+    .map(word => word[0])
+    .join("")
+    .toUpperCase();
+};
   if (!isAuthChecked) return null;
   return (
     <>
@@ -163,11 +237,11 @@ useEffect(() => {
               <Settings size={18} /> <span>Settings</span>
             </div>
            <button className="logout-btn" onClick={handleLogout}>
-  Logout
-</button>
+              Logout
+            </button>
             <div className="user-chip">
-              <div className="avatar">AS</div>
-              <div className="info"><h4>Admin User</h4><p>tayalveer20@gmail.com</p></div>
+              <div className="avatar">{getInitials(user.name)}</div>
+              <div className="info"><h4>{user.name}</h4><p>{user.email} </p></div>
             </div>
           </div>
         </aside>
@@ -176,7 +250,7 @@ useEffect(() => {
           {tab === "dashboard" && (
             <>
               <div className="page-header">
-                <h1>Overview</h1><p>Welcome back, Admin</p>
+                <h1>Overview</h1><p>Welcome, {user.name}</p>
               </div>
 
               <div className="stats-row">
@@ -208,15 +282,24 @@ useEffect(() => {
                   : researchers.length === 0
                     ? <p style={{ color:"var(--muted)", fontSize:14 }}>No datasets yet.</p>
                     : <table>
-                        <thead><tr><th>ID</th><th>Name</th><th>Link</th><th>User ID</th></tr></thead>
+                        <thead><tr><th>ID</th><th>Name</th><th>Link</th><th>User ID</th><th>Action</th></tr></thead>
                         <tbody>
                           {researchers.map(r => (
-                            <tr key={r.id}>
+                           <tr key={r.id}>
                               <td className="dim">#{r.id}</td>
                               <td className="bold">{r.name}</td>
-                              <td><a href={r.url} target="_blank" rel="noopener noreferrer" className="link-btn">View link</a></td>
+                              <td>
+                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="link-btn">
+                                  View link
+                                </a>
+                              </td>
                               <td className="dim">{r.user_id}</td>
-                            </tr>
+                              <td>
+                                <button className="delete-btn" onClick={() => deleteResearcher(r.id)}>
+                                  Delete
+                                </button>
+                              </td>
+                            </tr> 
                           ))}
                         </tbody>
                       </table>
