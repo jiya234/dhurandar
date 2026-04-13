@@ -1,183 +1,234 @@
-/* 🌿 Container */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── PAGE ── */
 .crop-container {
-  padding: 30px;
+  font-family: 'DM Sans', sans-serif;
+  padding: 32px 28px 64px;
+  background: #f4f6f8;
   min-height: 100vh;
-  background: #f9fafb;
 }
 
-/* 📦 Card */
-.crop-card-ui {
+/* ── CARD ── */
+.crop-card {
   background: #ffffff;
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-  transition: 0.2s ease;
-  height: 100%;
+  border: 1px solid #e8ecf0;
+  border-radius: 18px;
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.crop-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
 }
 
-.crop-card-ui:hover {
-  transform: translateY(-3px);
-}
-
-/* 🧾 Title */
-.crop-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-/* 🧾 Description */
-.crop-description {
+/* ── DESCRIPTION BOX ── */
+.crop-desc-box {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  font-size: 14px;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 24px;
+}
+.crop-desc-box h4 {
+  font-size: 15px;
+  font-weight: 600;
   color: #065f46;
+  margin-bottom: 8px;
+}
+.crop-desc-box p, .crop-desc-box li {
+  font-size: 13px;
+  color: #047857;
+  line-height: 1.65;
+}
+.crop-desc-box ul {
+  padding-left: 18px;
+  margin: 6px 0;
 }
 
-/* 🧪 Units */
-.unit {
-  font-size: 12px;
-  color: #9CA3AF;
-  font-style: italic;
-  margin-left: 5px;
+/* ── SECTION TITLE ── */
+.crop-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 18px;
+  letter-spacing: 0.01em;
 }
 
-/* 🧱 FORM GRID (4 inputs in one row) */
+/* ── FORM GRID ── */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-}
-
-/* 📍 LOCATION ROW */
-.form-group.full-width {
-  grid-column: span 4;
-}
-
-.location-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-}
-
-/* INPUT */
-.form-group label {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #fafafa;
-}
-
-.form-group input:focus {
-  border-color: #10b981;
-  background: #fff;
-  outline: none;
-}
-
-/* 🚀 BUTTON */
-.crop-btn {
-  width: 100%;
-  margin-top: 20px;
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.crop-btn:hover {
-  opacity: 0.9;
-}
-
-/* 🔹 RESULT SECTION */
-.result-section {
-  margin-top: 25px;
-}
-
-/* 🔹 3 BLOCK ROW */
-.three-block {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 14px;
   margin-bottom: 20px;
 }
 
-/* 🔹 GRAPH + TOP */
-.bottom-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 5px;
+}
+.unit {
+  font-size: 11px;
+  font-style: italic;
+  color: #9ca3af;
+  margin-left: 3px;
+}
+.form-group input {
+  width: 100%;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1px solid #e0e4ea;
+  background: #fafafa;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.form-group input:focus {
+  border-color: #10b981;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+}
+.form-group input::placeholder { color: #c0c7d0; }
+
+/* ── ERROR ── */
+.error-msg {
+  font-size: 13px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
 }
 
-/* 🏆 TOP CARD */
-.top-crop-card {
-  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-  border: 2px solid #10b981;
-  padding: 20px;
-  border-radius: 16px;
+/* ── SUBMIT BUTTON ── */
+.crop-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
   font-weight: 600;
-  text-align: center;
-  color: #065f46;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 15px;
+  gap: 8px;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.crop-btn:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+.crop-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.btn-loader {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── RESULT SECTION ── */
+.result-section { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── THREE GRID ── */
+.three-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: start;
 }
 
-/* 📈 PROGRESS */
-.progress-bar-ui {
+/* ── SUMMARY LIST ── */
+.summary-list { display: flex; flex-direction: column; gap: 8px; }
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 13px;
+}
+.summary-row:last-child { border-bottom: none; }
+.summary-label { color: #6b7280; }
+.summary-value { font-weight: 500; color: #111827; font-family: 'DM Mono', monospace; font-size: 12px; }
+
+/* ── WEATHER STATS ── */
+.weather-stats { display: flex; flex-direction: column; gap: 14px; }
+.weather-stat-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e8ecf0;
+}
+.ws-icon { font-size: 22px; flex-shrink: 0; }
+.ws-label { font-size: 11px; color: #9ca3af; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 2px; }
+.ws-value { font-size: 16px; font-weight: 600; color: #111827; font-family: 'DM Mono', monospace; }
+
+/* ── RECOMMENDATION ITEMS ── */
+.rec-item { margin-bottom: 16px; }
+.rec-item:last-child { margin-bottom: 0; }
+
+.rec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.rec-name { font-size: 14px; font-weight: 600; color: #111827; }
+.rec-pct  { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 600; }
+
+.progress-bar {
   height: 8px;
   background: #e5e7eb;
-  border-radius: 10px;
-  margin: 6px 0;
+  border-radius: 99px;
   overflow: hidden;
+  margin-bottom: 4px;
 }
-
 .progress-fill {
   height: 100%;
-  border-radius: 10px;
-  transition: 0.4s;
+  border-radius: 99px;
+  transition: width 0.6s ease;
 }
+.rec-label { font-size: 11px; color: #6b7280; }
 
-/* 📊 SMALL TEXT */
-.crop-card-ui small {
-  font-size: 12px;
-  color: #6b7280;
+/* ── TOP CROP BANNER ── */
+.top-crop-banner {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  border: 1.5px solid #10b981;
+  border-radius: 14px;
+  padding: 18px 24px;
+  text-align: center;
+  font-size: 16px;
+  color: #065f46;
+  margin-bottom: 16px;
 }
+.top-crop-banner strong { color: #047857; }
 
-/* 📱 RESPONSIVE */
+/* ── RESPONSIVE ── */
 @media (max-width: 900px) {
-
-  .form-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .location-row {
-    grid-template-columns: 1fr;
-  }
-
-  .three-block {
-    grid-template-columns: 1fr;
-  }
-
-  .bottom-row {
-    grid-template-columns: 1fr;
-  }
+  .form-grid   { grid-template-columns: repeat(2, 1fr); }
+  .three-grid  { grid-template-columns: 1fr; }
 }
-
-@media (max-width: 500px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 480px) {
+  .crop-container { padding: 20px 16px 48px; }
+  .form-grid { grid-template-columns: 1fr; }
 }

@@ -371,36 +371,58 @@ export default function ResearcherDashboard() {
   return (
     <div className="app-container">
 
-      {/* ===== SIDEBAR ===== */}
-      <aside className="sidebar">
-        <div className="logo-section">
-          <div className="logo-box"><CloudRain size={20} color="white" /></div>
-          <span className="logo-text">AgriSmart</span>
-        </div>
-
-        <div className="profile-section">
-          <div className="profile-avatar">{getInitials(user.name)}</div>
-          <div className="profile-details">
-            <h4>{user.name || "Researcher"}</h4>
-            <p>{user.role || "Researcher"}</p>
-          </div>
-        </div>
-
-        <nav className="nav-menu">
-          <div className={`nav-item ${activePage === "dashboard" ? "active" : ""}`} onClick={() => setActivePage("dashboard")}><LayoutDashboard size={18} /><span>Dashboard</span></div>
-          <div className={`nav-item ${activePage === "weather" ? "active" : ""}`} onClick={() => setActivePage("weather")}><Cloud size={18} /><span>Weather</span></div>
-          <div className={`nav-item ${activePage === "fieldMap" ? "active" : ""}`} onClick={() => setActivePage("fieldMap")}><Map size={18} /><span>Field Map</span></div>
-          <div className={`nav-item ${activePage === "cropSuggestions" ? "active" : ""}`} onClick={() => setActivePage("cropSuggestions")}><Wheat size={18} /><span>Crop Suggestions</span></div>
-          <div className={`nav-item ${activePage === "soilHealth" ? "active" : ""}`} onClick={() => setActivePage("soilHealth")}><Wheat size={18} /><span>Soil Health</span></div>
-          <div className={`nav-item ${activePage === "researcherData" ? "active" : ""}`} onClick={() => setActivePage("researcherData")}><Database size={18} /><span>Researcher Data</span></div>
-          <div className={`nav-item ${activePage === "settings" ? "active" : ""}`} onClick={() => setActivePage("settings")}><Settings size={18} /><span>Settings</span></div>
-        </nav>
-
-        <div className="logout-section" onClick={handleLogout}>
-          <LogOut size={18} /><span>Logout</span>
-        </div>
-      </aside>
-
+      {/* ── Hamburger (mobile only) ── */}
+           <button className="hamburger" onClick={() => setSidebarOpen(o => !o)} aria-label="Menu">
+             <Menu size={20} />
+           </button>
+     
+           {/* ── Mobile backdrop ── */}
+           <div
+             className={`sidebar-backdrop ${sidebarOpen ? "visible" : ""}`}
+             onClick={() => setSidebarOpen(false)}
+           />
+     
+           {/* ── SIDEBAR ── */}
+           <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+             <div className="logo-section">
+               <div className="logo-box"><CloudRain size={20} color="white" /></div>
+               <span className="logo-text">AgriSmart</span>
+             </div>
+     
+             <div className="profile-section">
+               <div className="profile-avatar">{getInitials(user.name)}</div>
+               <div className="profile-details">{user.name || "User"}</div>
+               <div className="status-badge">● Active field</div>
+             </div>
+     
+             <nav className="nav-menu">
+               {[
+                 { id: "dashboard",      label: "Dashboard",      icon: <LayoutDashboard size={18} /> },
+                 { id: "weather",        label: "Weather",        icon: <Cloud size={18} /> },
+                 { id: "fieldMap",       label: "Field Map",      icon: <Map size={18} /> },
+                 { id: "cropSuggestions",label: "Crop Suggestions",icon: <Wheat size={18} /> },
+                 { id: "soilHealth",     label: "Soil Health",    icon: <Wheat size={18} /> },
+                 { id: "researcherData", label: "Researcher Data",icon: <Database size={18} /> },
+                 { id: "settings",       label: "Settings",       icon: <Settings size={18} /> },
+               ].map(({ id, label, icon }) => (
+                 <div
+                   key={id}
+                   className={`nav-item ${activePage === id ? "active" : ""}`}
+                   onClick={() => navigate(id)}
+                   title={label}
+                 >
+                   {icon}
+                   <span>{label}</span>
+                 </div>
+               ))}
+             </nav>
+     
+             <div className="logout-section" onClick={handleLogout} title="Logout">
+               <LogOut size={18} />
+               <span>Logout</span>
+             </div>
+           </aside>
+     
       {/* ===== MAIN CONTENT ===== */}
       <main className="main-content">
 

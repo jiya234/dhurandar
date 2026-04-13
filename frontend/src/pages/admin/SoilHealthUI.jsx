@@ -1,310 +1,272 @@
 import { useState } from "react";
 import Plot from "react-plotly.js";
-import { toast , ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./SoilHealthUI.css";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer} from "recharts";
-function SoilHealthUI() {
 
+function SoilHealthUI() {
   const [formData, setFormData] = useState({
     N: "", P: "", K: "", pH: "",
     EC: "", OC: "", S: "",
     Fe: "", Zn: "", Mn: "", Cu: ""
   });
-  const chartData = [
-  { name: "N", value: parseFloat(formData.N) || 0 },
-  { name: "P", value: parseFloat(formData.P) || 0 },
-  { name: "K", value: parseFloat(formData.K) || 0 },
-  { name: "pH", value: parseFloat(formData.pH) || 0 },
-  { name: "EC", value: parseFloat(formData.EC) || 0 },
-  { name: "OC", value: parseFloat(formData.OC) || 0 },
-  { name: "S", value: parseFloat(formData.S) || 0 },
-  { name: "Fe", value: parseFloat(formData.Fe) || 0 },
-  { name: "Zn", value: parseFloat(formData.Zn) || 0 },
-  { name: "Mn", value: parseFloat(formData.Mn) || 0 },
-  { name: "Cu", value: parseFloat(formData.Cu) || 0 }
-];
+
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const nutrientRanges = {
-    N: { min: 0, max: 500 },
-    P: { min: 0, max: 300 },
-    K: { min: 0, max: 500 },
+    N:  { min: 0, max: 500 },
+    P:  { min: 0, max: 300 },
+    K:  { min: 0, max: 500 },
     pH: { min: 0, max: 14 },
     EC: { min: 0, max: 10 },
     OC: { min: 0, max: 10 },
-    S: { min: 0, max: 200 },
+    S:  { min: 0, max: 200 },
     Fe: { min: 0, max: 100 },
     Zn: { min: 0, max: 50 },
     Mn: { min: 0, max: 100 },
     Cu: { min: 0, max: 50 }
   };
-  const [result, setResult] = useState(null);
+
   const getBarColor = (name, value) => {
     const num = parseFloat(value);
     if (isNaN(num)) return "#93c5fd";
-
-    // 🔥 pH special case
     if (name === "pH") {
-      if (num < 6.5) return "#ef4444";   // acidic 🔴
-      if (num <= 7.5) return "#22c55e";  // neutral 🟢
-      return "#facc15";                  // basic 🟡
+      if (num < 6.5) return "#ef4444";
+      if (num <= 7.5) return "#22c55e";
+      return "#f59e0b";
     }
-
     const range = nutrientRanges[name];
     if (!range) return "#93c5fd";
-
-    const min = range.min;
-    const max = range.max;
-
-    const lowThreshold = min + (max - min) * 0.3;
-    const highThreshold = min + (max - min) * 0.7;
-
-    if (num < lowThreshold) return "#ef4444";   // 🔴 LOW
-    if (num > highThreshold) return "#22c55e";  // 🟢 HIGH
-    return "#facc15";                           // 🟡 MEDIUM
+    const span = range.max - range.min;
+    if (num < range.min + span * 0.3) return "#ef4444";
+    if (num > range.min + span * 0.7) return "#22c55e";
+    return "#f59e0b";
   };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     const numValue = parseFloat(value);
-
-    // check if range exists
-    if (nutrientRanges[name]) {
+    if (nutrientRanges[name] && value !== "") {
       const { min, max } = nutrientRanges[name];
-
       if (numValue < min || numValue > max) {
-        toast.warning(`Enter value between ${min} - ${max}` , { toastId: name });
-        return; // stop update
+        toast.warning(`${name}: Enter value between ${min} – ${max}`, { toastId: name });
+        return;
       }
     }
-
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("http://127.0.0.1:5000/soil-health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      setResult(data);
+    } catch (err) {
+      setError("Could not connect to server. Make sure Flask is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const res = await fetch("http://127.0.0.1:5000/soil-health", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(formData)
-    });
+  const chartData = Object.entries(formData).map(([name, value]) => ({
+    name,
+    value: parseFloat(value) || 0,
+    color: getBarColor(name, value),
+  }));
 
-    const data = await res.json();
-    console.log("SOIL DATA:", data);
-    setResult(data);
+  const getCategoryStyle = (cat) => {
+    if (cat === "Good") return { bg: "#f0fdf4", border: "#10b981", text: "#065f46", icon: "🌱", sub: "Soil is healthy and productive" };
+    if (cat === "Moderate") return { bg: "#fffbeb", border: "#f59e0b", text: "#78350f", icon: "⚠️", sub: "Needs some improvement" };
+    return { bg: "#fef2f2", border: "#ef4444", text: "#7f1d1d", icon: "❌", sub: "Poor condition, needs attention" };
   };
 
   return (
-    <div className="crop-container">
+    <div className="sh-container">
+      <ToastContainer position="top-right" autoClose={3000} />
 
-      {/* FORM */}
-      <div className="crop-card-ui">
-        <div className="crop-description">
-            <h4>🌿 Soil Health Analysis Guide</h4>
-
-            <p>
-              This tool helps you analyze the health and quality of your soil based on
-              essential nutrients and micronutrients.
-            </p>
-
-            <ul>
-              <li>Enter values for nutrients like Nitrogen (N), Phosphorus (P), Potassium (K), and pH.</li>
-              <li>Add micronutrients such as Iron, Zinc, Copper, and others for detailed analysis.</li>
-              <li>Click <strong>"Analyze Soil"</strong> to evaluate your soil condition.</li>
-            </ul>
-
-            <p>
-              📊 <strong>Output:</strong> You will get insights about soil health, nutrient levels, 
-              and possible deficiencies.
-            </p>
-
-            <p>
-              🌱 This helps you understand what your soil lacks and how to improve it for better crop yield.
-            </p>
-          </div>
-        <h5 className="crop-title">🌱 Soil Health Analysis</h5>
-
-        <form onSubmit={handleSubmit}>
-
-          <div className="form-grid">
-
-  <div className="form-group">
-    <label>Nitrogen<span className="unit">(kg/ha)</span></label>
-    <input type="number" name="N" min="0" max="500" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>Phosphorus<span className="unit">(kg/ha)</span></label>
-    <input type="number" name="P" min="0" max="300" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>Potassium<span className="unit">(kg/ha)</span></label>
-    <input type="number" name="K" min="0" max="500" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>pH<span className="unit">(0-14)</span></label>
-    <input type="number" step="0.1" name="pH" min="0" max="14" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>EC<span className="unit">(dS/m)</span></label>
-    <input type="number" step="0.01" name="EC" min="0" max="10" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>Organic Carbon<span className="unit">(%)</span></label>
-    <input type="number" step="0.01" name="OC" min="0" max="10" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>Sulphur<span className="unit">ppm</span></label>
-    <input type="number" step="0.1" name="S" min="0" max="200" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>Iron<span className="unit">ppm</span></label>
-    <input type="number" step="0.01" name="Fe" min="0" max="100" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>Zinc<span className="unit">ppm</span></label>
-    <input type="number" step="0.01" name="Zn" min="0" max="50" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>Manganese<span className="unit">ppm</span></label>
-    <input type="number" step="0.01" name="Mn" min="0" max="100" onChange={handleChange} required />
-  </div>
-
-  <div className="form-group">
-    <label>Copper<span className="unit">ppm</span></label>
-    <input type="number" step="0.01" name="Cu" min="0" max="50" onChange={handleChange} required />
-  </div>
-
-</div>
-
-          <button className="crop-btn">Analyze Soil</button>
-
-        </form>
-      </div>
-
-      {/* RESULT */}
-      {result && (
-      <div className="result-section fade-in">
-
-        {/* 🔹 TOP ROW (2 cards) */}
-        <div className="top-result">
-
-          {/* GAUGE */}
-          <div className="crop-card-ui inner-card">
-            <h5>🌱 Soil Health Index</h5>
-
-            <Plot
-              data={[{
-                type: "indicator",
-                mode: "gauge+number",
-                value: result.shi,
-                title: { text: "Soil Health Index" },
-                gauge: {
-                  axis: { range: [0, 100] },
-                  bar: { color: "#2e7d32" },
-                  steps: [
-                    { range: [0, 40], color: "#ef5350" },
-                    { range: [40, 70], color: "#ffa726" },
-                    { range: [70, 100], color: "#66bb6a" }
-                  ]
-                }
-              }]}
-              layout={{ width: 300, height: 250 }}
-            />
-          </div>
-
-          {/* GRAPH */}
-          <div className="crop-card-ui inner-card">
-            <h5>📊 Nutrient Overview</h5>
-            <div style={{ fontSize: "12px", marginBottom: "10px" }}>
-                🔴 Low &nbsp;&nbsp; 🟡 Normal &nbsp;&nbsp; 🟢 High
-              </div>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={chartData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar
-                  dataKey="value"
-                  fill="#8884d8"
-                  shape={(props) => {
-                    const { x, y, width, height, payload } = props;
-
-                    const color = getBarColor(payload.name, payload.value);
-
-                    return (
-                      <rect
-                        x={x}
-                        y={y}
-                        width={width}
-                        height={height}
-                        fill={color}
-                      />
-                    );
-                  }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
+      {/* ── FORM CARD ── */}
+      <div className="sh-card">
+        <div className="sh-desc-box">
+          <h4>🌿 Soil Health Analysis Guide</h4>
+          <p>Analyze your soil based on essential macronutrients and micronutrients.</p>
+          <ul>
+            <li>Fill macronutrients: Nitrogen, Phosphorus, Potassium, and pH.</li>
+            <li>Add micronutrients like Iron, Zinc, Copper for detailed analysis.</li>
+          </ul>
+          <p>Output: Soil Health Index, nutrient deficiencies, and improvement suggestions.</p>
         </div>
 
-        {/* 🔹 BOTTOM ROW (3 cards) */}
-        <div className="bottom-result-3">
+        <h5 className="sh-section-title">🧪 Soil Nutrient Inputs</h5>
 
-          {/* CATEGORY */}
-          <div className="crop-card-ui inner-card">
-            <h5>📊 Category Insight</h5>
-            <p><strong>{result.category}</strong></p>
-            <p>
-              {result.category === "Good"
-                ? "Soil is healthy 🌱"
-                : result.category === "Moderate"
-                ? "Needs improvement ⚠️"
-                : "Poor condition ❌"}
-            </p>
-          </div>
-
-          {/* DEFICIENCY */}
-          <div className="crop-card-ui inner-card">
-            <h5>⚠ Nutrient Deficiencies</h5>
-            {result.deficiencies?.length > 0 ? (
-              <div className="badge-container">
-                {result.deficiencies.map((item, i) => (
-                  <span key={i} className="badge red">⚠ {item}</span>
-                ))}
+        <form onSubmit={handleSubmit}>
+          <div className="sh-form-grid">
+            {[
+              { name: "N",  label: "Nitrogen",        unit: "kg/ha" },
+              { name: "P",  label: "Phosphorus",       unit: "kg/ha" },
+              { name: "K",  label: "Potassium",        unit: "kg/ha" },
+              { name: "pH", label: "pH",               unit: "0–14",  step: "0.1" },
+              { name: "EC", label: "EC",               unit: "dS/m",  step: "0.01" },
+              { name: "OC", label: "Organic Carbon",   unit: "%",     step: "0.01" },
+              { name: "S",  label: "Sulphur",          unit: "ppm",   step: "0.1" },
+              { name: "Fe", label: "Iron",             unit: "ppm",   step: "0.01" },
+              { name: "Zn", label: "Zinc",             unit: "ppm",   step: "0.01" },
+              { name: "Mn", label: "Manganese",        unit: "ppm",   step: "0.01" },
+              { name: "Cu", label: "Copper",           unit: "ppm",   step: "0.01" },
+            ].map(({ name, label, unit, step }) => (
+              <div className="form-group" key={name}>
+                <label>{label} <span className="unit">{unit}</span></label>
+                <input
+                  type="number"
+                  name={name}
+                  step={step || "1"}
+                  min={nutrientRanges[name]?.min}
+                  max={nutrientRanges[name]?.max}
+                  placeholder={`${nutrientRanges[name]?.min}–${nutrientRanges[name]?.max}`}
+                  onChange={handleChange}
+                  required
+                />
               </div>
-            ) : (
-              <span className="badge green">✅ No Deficiencies</span>
-            )}
-          </div>
-
-          {/* SUGGESTIONS */}
-          <div className="crop-card-ui inner-card">
-            <h5>🌿 Suggestions</h5>
-
-            {result.suggestions?.map((tip, i) => (
-              <p key={i}>🌿 {tip}</p>
             ))}
           </div>
 
-        </div>
+          {error && <p className="error-msg">⚠️ {error}</p>}
 
+          <button type="submit" className="sh-btn" disabled={loading}>
+            {loading ? <span className="btn-loader" /> : "🔬"} {loading ? "Analyzing..." : "Analyze Soil"}
+          </button>
+        </form>
       </div>
-    )}
 
+      {/* ── RESULTS ── */}
+      {result && (
+        <div className="result-section">
+
+          {/* Top Row */}
+          <div className="top-result-grid">
+
+            {/* Gauge */}
+            <div className="sh-card">
+              <h5 className="sh-section-title">🌱 Soil Health Index</h5>
+              <div className="gauge-wrap">
+                <Plot
+                  data={[{
+                    type: "indicator",
+                    mode: "gauge+number",
+                    value: result.shi,
+                    gauge: {
+                      axis: { range: [0, 100], tickfont: { size: 11 } },
+                      bar: { color: "#059669", thickness: 0.25 },
+                      bgcolor: "white",
+                      borderwidth: 0,
+                      steps: [
+                        { range: [0, 40],  color: "#fee2e2" },
+                        { range: [40, 70], color: "#fef9c3" },
+                        { range: [70, 100], color: "#dcfce7" },
+                      ],
+                    },
+                    number: { font: { size: 36, color: "#111827" }, suffix: "" },
+                  }]}
+                  layout={{
+                    width: undefined,
+                    height: 220,
+                    margin: { t: 20, b: 10, l: 20, r: 20 },
+                    paper_bgcolor: "transparent",
+                    font: { family: "DM Sans, sans-serif" },
+                  }}
+                  style={{ width: "100%" }}
+                  config={{ displayModeBar: false, responsive: true }}
+                />
+                <div className="gauge-legend">
+                  <span className="leg-item"><span className="leg-dot" style={{ background: "#ef4444" }} />Poor (0–40)</span>
+                  <span className="leg-item"><span className="leg-dot" style={{ background: "#f59e0b" }} />Moderate (40–70)</span>
+                  <span className="leg-item"><span className="leg-dot" style={{ background: "#10b981" }} />Good (70–100)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Nutrient Bar Chart */}
+            <div className="sh-card">
+              <h5 className="sh-section-title">📊 Nutrient Overview</h5>
+              <div className="color-legend">
+                <span><span className="leg-dot-sm" style={{ background: "#ef4444" }} />Low</span>
+                <span><span className="leg-dot-sm" style={{ background: "#f59e0b" }} />Normal</span>
+                <span><span className="leg-dot-sm" style={{ background: "#22c55e" }} />High</span>
+              </div>
+              <div className="nutrient-bars">
+                {chartData.map(({ name, value, color }) => {
+                  const range = nutrientRanges[name];
+                  const pct = Math.min(100, range ? (value / range.max) * 100 : 0);
+                  return (
+                    <div className="nb-row" key={name}>
+                      <span className="nb-label">{name}</span>
+                      <div className="nb-track">
+                        <div className="nb-fill" style={{ width: `${pct}%`, background: color }} />
+                      </div>
+                      <span className="nb-val">{value}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Row */}
+          <div className="bottom-result-grid">
+
+            {/* Category */}
+            <div className="sh-card">
+              <h5 className="sh-section-title">📋 Category Insight</h5>
+              {(() => {
+                const s = getCategoryStyle(result.category);
+                return (
+                  <div className="cat-box" style={{ background: s.bg, borderColor: s.border }}>
+                    <p className="cat-icon">{s.icon}</p>
+                    <p className="cat-val" style={{ color: s.text }}>{result.category}</p>
+                    <p className="cat-sub" style={{ color: s.text }}>{s.sub}</p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Deficiencies */}
+            <div className="sh-card">
+              <h5 className="sh-section-title">⚠️ Nutrient Deficiencies</h5>
+              {result.deficiencies?.length > 0 ? (
+                <div className="badge-grid">
+                  {result.deficiencies.map((item, i) => (
+                    <span key={i} className="badge badge-red">⚠ {item}</span>
+                  ))}
+                </div>
+              ) : (
+                <span className="badge badge-green">✅ No Deficiencies Found</span>
+              )}
+            </div>
+
+            {/* Suggestions */}
+            <div className="sh-card">
+              <h5 className="sh-section-title">🌿 Suggestions</h5>
+              <div className="suggestions-list">
+                {result.suggestions?.map((tip, i) => (
+                  <div key={i} className="suggestion-item">
+                    <span className="sug-icon">🌿</span>
+                    <span>{tip}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

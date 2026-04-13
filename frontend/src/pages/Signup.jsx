@@ -213,7 +213,7 @@ const Signup = () => {
   <div className="role-selector">
     <p className="section-title">Select Your Role</p>
     <div className="role-grid">
-      {["Admin", "User", "Researcher"].map((r) => (
+      {[ "User", "Researcher"].map((r) => (
         <label key={r} className={`role-item ${form.role.toLowerCase() === r.toLowerCase() ? "selected" : ""}`}>
           <input
             type="radio"
